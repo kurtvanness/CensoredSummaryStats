@@ -328,16 +328,16 @@ def string_precision(value):
     
     # Values above 100 or are rounded to 100 should be expressed as integers
     # with no more than 3 significant digits.
-    if round(value,1) >= 100:
+    if round(abs(value),1) >= 100:
         string = str(int(float(f'{value:.3g}')))
     # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
-    elif round(value,2) >= 10:
+    elif round(abs(value),2) >= 10:
         string = f'{value:.1f}'
     # Values above 0.2 or are rounded to 0.2 should be rounded to 2 decimal places
-    elif round(value,3) >= 0.2:
+    elif round(abs(value),3) >= 0.2:
         string = f'{value:.2f}'
     # Values above 0.1 or are rounded to 0.1 should be rounded to 3 decimal places
-    elif round(value,3) >= 0.1:
+    elif round(abs(value),3) >= 0.1:
         string = f'{value:.3f}'
     # Values below 0.1 should be rounded to 2 significant digits
     else:
@@ -451,6 +451,10 @@ def maximum_interval(df,
     # Consider the maximum bound for each left boundary option to determine
     # whether the bound should be open or closed.
     left = df.groupby(groupby_columns+['LeftBoundary'])['LeftBound'].max().unstack('LeftBoundary')
+    # Create missing columns
+    for item in ['Open','Closed']:
+        if item not in left.columns:
+            left[item] = np.nan
     # Use the maximum closed boundary if there are no open boundaries or
     # if the closed boundary is larger than the largest open boundary
     condition = (left['Closed'] > left['Open']) | (left['Open'].isna())
@@ -463,6 +467,10 @@ def maximum_interval(df,
     # Consider the maximum bound for each right boundary option to determine
     # whether the bound should be open or closed.
     right = df.groupby(groupby_columns+['RightBoundary'])['RightBound'].max().unstack('RightBoundary')
+    # Create missing columns
+    for item in ['Open','Closed']:
+        if item not in right.columns:
+            right[item] = np.nan
     # Use the maximum closed boundary if there are no open boundaries or
     # if the closed boundary is larger than or equal to the largest open boundary
     condition = (right['Closed'] >= right['Open']) | (right['Open'].isna())
@@ -594,6 +602,10 @@ def minimum_interval(df,
     # Consider the minimum bound for each left boundary option to determine
     # whether the bound should be open or closed.
     left = df.groupby(groupby_columns+['LeftBoundary'])['LeftBound'].min().unstack('LeftBoundary')
+    # Create missing columns
+    for item in ['Open','Closed']:
+        if item not in left.columns:
+            left[item] = np.nan
     # Use the minimum closed boundary if there are no open boundaries or
     # if the closed boundary is less than or equal to the least open boundary
     condition = (left['Closed'] <= left['Open']) | (left['Open'].isna())
@@ -606,6 +618,10 @@ def minimum_interval(df,
     # Consider the minimum bound for each right boundary option to determine
     # whether the bound should be open or closed.
     right = df.groupby(groupby_columns+['RightBoundary'])['RightBound'].min().unstack('RightBoundary')
+    # Create missing columns
+    for item in ['Open','Closed']:
+        if item not in right.columns:
+            right[item] = np.nan
     # Use the minimum closed boundary if there are no open boundaries or
     # if the closed boundary is less than the least open boundary
     condition = (right['Closed'] < right['Open']) | (right['Open'].isna())
