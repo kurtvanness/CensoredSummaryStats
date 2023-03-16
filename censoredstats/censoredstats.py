@@ -59,8 +59,7 @@ def split(df,
 def result_to_interval(df,
                        censor_column = 'CensorComponent',
                        numeric_column = 'NumericComponent',
-                       include_negative_interval = False,
-                       boundary_type = str):
+                       include_negative_interval = False):
     '''
     A function that utilises the censor and numeric components to convert
     each result into interval notation. Four columns are created to store
@@ -79,15 +78,11 @@ def result_to_interval(df,
         The default is 'NumericComponent'.
     include_negative_interval : boolean, optional
         If True, then all positive and negative values are considered
-        (e.g., <0.5 would be converted to (-np.inf,5) if False).
+        e.g., <0.5 would be converted to (-np.inf,5).
         If False, then only non-negative values are considered
-        (e.g., <0.5 would be converted to [0,5) if False).
+        e.g., <0.5 would be converted to [0,5).
         The default is False.
-    boundary_type : DataType, optional
-        This determines whether the boundary is returned in a string format
-        (Open/Closed) or integer format (0 - open / 1 - closed).
-        The default is str.
-
+    
     Raises
     ------
     ValueError
@@ -109,47 +104,34 @@ def result_to_interval(df,
     # Define boundary values as string or integers
     closed_boundary = 'Closed'
     open_boundary = 'Open'
-    # Use integers if type is set to int
-    if boundary_type == int:
-        closed_boundary = 1
-        open_boundary = 0
     
-    # Determine the lower bound
-    if include_negative_interval:
-        lower_bound = -np.inf
-    else:
-        lower_bound = 0.0
-        # Raise error if negative values exist in data when negative intervals are excluded
-        if (df['NumericComponent'] < 0.0).any():
+    # Define where the left bound is closed
+    df['LeftBoundary'] = np.where(df[censor_column].isin(['','≥']),
+                                  closed_boundary, open_boundary)
+    
+    # Define where left bound is unlimited
+    df['LeftBound'] = np.where(df[censor_column].isin(['<','≤']),
+                               -np.inf, df[numeric_column])
+    
+    # Define where right bound is unlimited
+    df['RightBound'] = np.where(df[censor_column].isin(['≥','>']),
+                                np.inf, df[numeric_column])
+    
+    # Define where the right bound is closed
+    df['RightBoundary'] = np.where(df[censor_column].isin(['≤','']),
+                                   closed_boundary, open_boundary)
+    
+    if not include_negative_interval:
+        if df['LeftBound'].between(-np.inf, 0, inclusive='neither').any():
             raise ValueError('Negative values exist in the data. Resolve negative'
                              'values or set include_negative_interval to True')
-    
-    # Determine conditions where the left boundary is open
-    condition = (
-        (include_negative_interval & df[censor_column].isin(['<','≤'])) |
-        (df[censor_column] == '>')
-        )
-    df['LeftBoundary'] = np.where(condition, open_boundary, closed_boundary)
-    
-    # Determine conditions for where left bound is the lower_bound
-    condition = (
-        df[censor_column].isin(['<','≤'])
-        )
-    df['LeftBound'] = np.where(condition, lower_bound, df['NumericComponent'])
-    
-    # Determine conditions where right bound is infinite
-    condition = (
-        df[censor_column].isin(['≥','>'])
-        )
-    df['RightBound'] = np.where(condition, np.inf, df['NumericComponent'])
-    
-    # Determine conditions where the right bound is open
-    condition = (
-        df[censor_column].isin(['<','≥','>'])
-        )
-    df['RightBoundary'] = np.where(condition, open_boundary, closed_boundary)
+        
+        condition = (df['LeftBound'] < 0)
+        df['LeftBoundary'] = np.where(condition, 'Closed', df['LeftBoundary'])
+        df['LeftBound'] = np.where(condition, 0.0, df['LeftBound'])
     
     return df
+
 
 def interval_notation(df):
     '''
