@@ -440,7 +440,7 @@ def maximum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # Create column that indicates the generated statistic and append to grouping list
     df['Statistic'] = 'Maximum'
@@ -485,7 +485,7 @@ def maximum_interval(df,
     return df
 
 def maximum(df,
-            groupby_columns = [],
+            groupby_columns = [[]],
             values = ['CensorComponent','NumericComponent'],
             include_negative_interval = False,
             precision_tolerance_to_drop_censor = 0.25,
@@ -498,10 +498,11 @@ def maximum(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of strings, optional
+    groupby_columns : list of lists of strings, optional
         List of column names that should be used to create groups. A maximum
-        will be found within each group.
-        The default is [].
+        will be found within each group. Multiple lists can be supplied to
+        perform sequential maxima before converting intervals to a result.
+        The default is [[]].
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -547,8 +548,10 @@ def maximum(df,
     # Convert the results from censor and numeric components to an interval representation
     df = result_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Using the intervals, determine the range of possible maxima
-    df = maximum_interval(df, groupby_columns)
+    # Cycle through each grouping
+    for grouping in groupby_columns:
+        # Using the intervals, determine the range of possible maxima
+        df = maximum_interval(df, grouping)
     
     # Create interval notation for the maximum
     df = interval_notation(df)
@@ -591,7 +594,7 @@ def minimum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # Create column that indicates the generated statistic and append to grouping list
     df['Statistic'] = 'Minimum'
@@ -636,7 +639,7 @@ def minimum_interval(df,
     return df
 
 def minimum(df,
-            groupby_columns = [],
+            groupby_columns = [[]],
             values = ['CensorComponent','NumericComponent'],
             include_negative_interval = False,
             precision_tolerance_to_drop_censor = 0.25,
@@ -649,10 +652,11 @@ def minimum(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of strings, optional
+    groupby_columns : list of lists of strings, optional
         List of column names that should be used to create groups. A minimum
-        will be found within each group.
-        The default is [].
+        will be found within each group. Multiple lists can be supplied to
+        perform sequential minima before converting intervals to a result.
+        The default is [[]].
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -698,8 +702,10 @@ def minimum(df,
     # Convert the results from censor and numeric components to an interval representation
     df = result_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Using the intervals, determine the range of possible minima
-    df = minimum_interval(df, groupby_columns)
+    # Cycle through each grouping
+    for grouping in groupby_columns:
+        # Using the intervals, determine the range of possible minima
+        df = minimum_interval(df, grouping)
     
     # Create interval notation for the minimum
     df = interval_notation(df)
@@ -742,7 +748,7 @@ def average_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # Create column that indicates the generated statistic and append to grouping list
     df['Statistic'] = 'Average'
@@ -773,7 +779,7 @@ def average_interval(df,
     return df
 
 def average(df,
-            groupby_columns = [],
+            groupby_columns = [[]],
             values = ['CensorComponent','NumericComponent'],
             focus_high_potential = True,
             include_negative_interval = False,
@@ -787,10 +793,11 @@ def average(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of strings, optional
+    groupby_columns : list of lists of strings, optional
         List of column names that should be used to create groups. An average
-        will be found within each group.
-        The default is [].
+        will be found within each group. Multiple lists can be supplied to
+        perform sequential averaging before converting intervals to a result.
+        The default is [[]].
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -839,8 +846,10 @@ def average(df,
     # Convert the results from censor and numeric components to an interval representation
     df = result_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Using the intervals, determine the range of possible minima
-    df = average_interval(df, groupby_columns)
+    # Cycle through each grouping
+    for grouping in groupby_columns:
+        # Using the intervals, determine the range of possible minima
+        df = average_interval(df, grouping)
     
     # Create interval notation for the minimum
     df = interval_notation(df)
