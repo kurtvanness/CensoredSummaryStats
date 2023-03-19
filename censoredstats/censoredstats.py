@@ -9,9 +9,114 @@ import numpy as np
 
 #%% Utility Functions
 
-#%%% Create censor/numeric columns
+#%%% Display
 
-def split(df,
+def string_precision(value):
+    '''
+    A function that applies a specified rounding method that is value
+    dependent. This method is specifically designed to reflect the
+    typical measurement precision for water quality results. Depending on the
+    value, the rounding is either to a particular number of decimal places or
+    to a particular number of significant digits.
+
+    Parameters
+    ----------
+    value : float
+        Numeric value that will be rounded.
+
+    Returns
+    -------
+    string : string
+        The rounded value expressed as a string to the appropriate precision.
+
+    '''
+    
+    # Check for infinite values
+    if abs(value) == np.inf:
+        string = str(value)
+    # Values above 100 or are rounded to 100 should be expressed as integers
+    # with no more than 3 significant digits.
+    elif round(abs(value),1) >= 100:
+        string = str(int(float(f'{value:.3g}')))
+    # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
+    elif round(abs(value),2) >= 10:
+        string = f'{value:.1f}'
+    # Values above 0.2 or are rounded to 0.2 should be rounded to 2 decimal places
+    elif round(abs(value),3) >= 0.2:
+        string = f'{value:.2f}'
+    # Values above 0.1 or are rounded to 0.1 should be rounded to 3 decimal places
+    elif round(abs(value),3) >= 0.1:
+        string = f'{value:.3f}'
+    # Values below 0.1 should be rounded to 2 significant digits
+    else:
+        string = f'{value:.2g}'
+
+    return string
+
+
+def numeric_precision(value):
+    '''
+    A function that returns a float data type from a rounding function instead
+    of a string data type.
+
+    Parameters
+    ----------
+    value : float
+        Float value that may have more decimal places or significant digits
+        than is appropriate
+
+    Returns
+    -------
+    float
+        Float value that is rounded appropriately
+
+    '''
+    
+    # Return the same rounded result as string_precision but as a float
+    return float(string_precision(value))
+
+def interval_notation(df, precision_rounding=True):
+    '''
+    This function creates a column that combines the interval components
+    into a single text notation for intervals.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame containing columns for left/right bounds and boundaries
+    precision_rounding : boolean, optional
+        If True, a rounding method is applied to round results to have no more
+        decimals than what can be measured.
+        The default is True.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame identical to intput with additional column with combined
+        interval notation
+
+    '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
+    # Determine the left boundary symbol
+    df['Interval'] = np.where(df['LeftBoundary'] == 'Open', '(', '[')
+    
+    # Incorporate left and right bounds
+    if precision_rounding:
+        df['Interval'] += df['LeftBound'].apply(string_precision) + ', ' + df['RightBound'].apply(string_precision)
+    else:
+        df['Interval'] += df['LeftBound'].astype(str) + ', ' + df['RightBound'].astype(str)
+    
+    # Determine the right boundary symbol
+    df['Interval'] += np.where(df['RightBoundary'].isin(['Open']), ')', ']')
+    
+    return df
+
+#%%% Convert between, results, components, intervals
+
+def result_to_components(df,
           value_column,
           censor_column = 'CensorComponent',
           numeric_column = 'NumericComponent'):
@@ -54,12 +159,10 @@ def split(df,
     
     return df
 
-#%%% Create interval for each result
-
-def result_to_interval(df,
-                       censor_column = 'CensorComponent',
-                       numeric_column = 'NumericComponent',
-                       include_negative_interval = False):
+def components_to_interval(df,
+                           censor_column = 'CensorComponent',
+                           numeric_column = 'NumericComponent',
+                           include_negative_interval = False):
     '''
     A function that utilises the censor and numeric components to convert
     each result into interval notation. Four columns are created to store
@@ -133,38 +236,7 @@ def result_to_interval(df,
     return df
 
 
-def interval_notation(df):
-    '''
-    This function creates a column that combines the interval components
-    into a single text notation for intervals.
-
-    Parameters
-    ----------
-    df : DataFrame
-        DataFrame containing columns for left/right bounds and boundaries
-
-    Returns
-    -------
-    df : DataFrame
-        DataFrame identical to intput with additional column with combined
-        interval notation
-
-    '''
-    
-    # Create a copy of the DataFrame
-    df = df.copy()
-    
-    # Combine the left/right bound and boundary information into a single column
-    df['Interval'] = np.where(df['LeftBoundary'].isin(['Open',0]), '(', '[') + \
-                    df['LeftBound'].astype(str) + ', ' + df['RightBound'].astype(str) + \
-                    np.where(df['RightBoundary'].isin(['Open', 0]), ')', ']')
-    
-    return df
-    
-    
-#%%% Create result from interval
-
-def interval_to_result(df,
+def interval_to_components(df,
                        censor_column = 'CensorComponent',
                        numeric_column = 'NumericComponent',
                        focus_high_potential = True,
@@ -304,75 +376,10 @@ def interval_to_result(df,
     return df
 
 
-#%%% Rounding method
-
-def string_precision(value):
-    '''
-    A function that applies a specified rounding method that is value
-    dependent. This method is specifically designed to reflect the
-    typical measurement precision for water quality results. Depending on the
-    value, the rounding is either to a particular number of decimal places or
-    to a particular number of significant digits.
-
-    Parameters
-    ----------
-    value : float
-        Numeric value that will be rounded.
-
-    Returns
-    -------
-    string : string
-        The rounded value expressed as a string to the appropriate precision.
-
-    '''
-    
-    # Values above 100 or are rounded to 100 should be expressed as integers
-    # with no more than 3 significant digits.
-    if round(abs(value),1) >= 100:
-        string = str(int(float(f'{value:.3g}')))
-    # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
-    elif round(abs(value),2) >= 10:
-        string = f'{value:.1f}'
-    # Values above 0.2 or are rounded to 0.2 should be rounded to 2 decimal places
-    elif round(abs(value),3) >= 0.2:
-        string = f'{value:.2f}'
-    # Values above 0.1 or are rounded to 0.1 should be rounded to 3 decimal places
-    elif round(abs(value),3) >= 0.1:
-        string = f'{value:.3f}'
-    # Values below 0.1 should be rounded to 2 significant digits
-    else:
-        string = f'{value:.2g}'
-
-    return string
-
-
-def numeric_precision(value):
-    '''
-    A function that returns a float data type from a rounding function instead
-    of a string data type.
-
-    Parameters
-    ----------
-    value : float
-        Float value that may have more decimal places or significant digits
-        than is appropriate
-
-    Returns
-    -------
-    float
-        Float value that is rounded appropriately
-
-    '''
-    
-    # Return the same rounded result as string_precision but as a float
-    return float(string_precision(value))
-
-#%%% Create result from components
-
-def create_result(df,
-                  censor_column = 'CensorComponent',
-                  numeric_column = 'NumericComponent',
-                  precision_rounding = True):
+def components_to_result(df,
+                         censor_column = 'CensorComponent',
+                         numeric_column = 'NumericComponent',
+                         precision_rounding = True):
     '''
     A function that combines censor and numeric components into a combined
     string/text result.
@@ -419,7 +426,7 @@ def maximum_interval(df,
                      groupby_columns = []):
     '''
     A function that analyses the interval notation form of results returned
-    from result_to_interval to generate a new interval for the maximum. Groups
+    from components_to_interval to generate a new interval for the maximum. Groups
     of results can be defined by including the columns that should be used to
     create groups.
 
@@ -539,14 +546,14 @@ def maximum(df,
     if len(values) == 1:
         censor_column = 'CensorComponent'
         numeric_column = 'NumericComponent'
-        df = split(df,values[0])
+        df = result_to_components(df,values[0])
     # Else define the names to use for the censor and numeric columns
     else:
         censor_column = values[0]
         numeric_column = values[1]
     
     # Convert the results from censor and numeric components to an interval representation
-    df = result_to_interval(df, censor_column, numeric_column, include_negative_interval)
+    df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
     # Cycle through each grouping
     for grouping in groupby_columns:
@@ -554,16 +561,16 @@ def maximum(df,
         df = maximum_interval(df, grouping)
     
     # Create interval notation for the maximum
-    df = interval_notation(df)
+    df = interval_notation(df, precision_rounding)
     
     # Convert the interval for the maximum into censor and numeric notation
-    df = interval_to_result(df, censor_column, numeric_column,
-                            focus_high_potential = True,
-                            include_negative_interval = include_negative_interval,
-                            precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
+    df = interval_to_components(df, censor_column, numeric_column,
+                                focus_high_potential = True,
+                                include_negative_interval = include_negative_interval,
+                                precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
     
     # Combine the censor and numeric components into a result
-    df = create_result(df, censor_column, numeric_column, precision_rounding)
+    df = components_to_result(df, censor_column, numeric_column, precision_rounding)
     
     return df
 
@@ -573,7 +580,7 @@ def minimum_interval(df,
                      groupby_columns = []):
     '''
     A function that analyses the interval notation form of results returned
-    from result_to_interval to generate a new interval for the minimum. Groups
+    from components_to_interval to generate a new interval for the minimum. Groups
     of results can be defined by including the columns that should be used to
     create groups.
 
@@ -693,14 +700,14 @@ def minimum(df,
     if len(values) == 1:
         censor_column = 'CensorComponent'
         numeric_column = 'NumericComponent'
-        df = split(df,values[0])
+        df = result_to_components(df,values[0])
     # Else define the names to use for the censor and numeric columns
     else:
         censor_column = values[0]
         numeric_column = values[1]
     
     # Convert the results from censor and numeric components to an interval representation
-    df = result_to_interval(df, censor_column, numeric_column, include_negative_interval)
+    df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
     # Cycle through each grouping
     for grouping in groupby_columns:
@@ -708,16 +715,16 @@ def minimum(df,
         df = minimum_interval(df, grouping)
     
     # Create interval notation for the minimum
-    df = interval_notation(df)
+    df = interval_notation(df, precision_rounding)
     
     # Convert the interval for the minimum into censor and numeric notation
-    df = interval_to_result(df, censor_column, numeric_column,
-                            focus_high_potential = False,
-                            include_negative_interval = include_negative_interval,
-                            precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
+    df = interval_to_components(df, censor_column, numeric_column,
+                                focus_high_potential = False,
+                                include_negative_interval = include_negative_interval,
+                                precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
     
     # Combine the censor and numeric components into a result
-    df = create_result(df, censor_column, numeric_column, precision_rounding)
+    df = components_to_result(df, censor_column, numeric_column, precision_rounding)
     
     return df
 
@@ -727,7 +734,7 @@ def average_interval(df,
                      groupby_columns = []):
     '''
     A function that analyses the interval notation form of results returned
-    from result_to_interval to generate a new interval for the average. Groups
+    from components_to_interval to generate a new interval for the average. Groups
     of results can be defined by including the columns that should be used to
     create groups.
 
@@ -755,7 +762,8 @@ def average_interval(df,
     groupby_columns.append('Statistic')
     
     # Change notation of 'Closed' and 'Open' boundaries to 0 and 1, respectively
-    df[['LeftBoundary','RightBoundary']] = df[['LeftBoundary','RightBoundary']].replace(['Closed','Open'], [0,1])
+    # The presence of any open boundaries on one side ensure that the interval for the average is also
+    # open on that side
     df[['LeftBoundary','RightBoundary']] = df[['LeftBoundary','RightBoundary']].replace(['Closed','Open'], [0,1])
     
     # Get the left/right bounds of the average by averaging bounds within the group
@@ -771,8 +779,8 @@ def average_interval(df,
     # Replace integers with text for boundaries
     df[['LeftBoundary','RightBoundary']] = df[['LeftBoundary','RightBoundary']].replace([0,1], ['Closed','Open'])
     
-    # Aggregate means with infinite values produce nan values rather than np.inf values
-    # Convert nan to inf
+    # Means with infinite values produce nan values rather than np.inf values
+    # Convert nan to inf only if infinite values are included in the mean
     df['LeftBound'] = np.where(df['Minimum'] == -np.inf, -np.inf, df['LeftBound'])
     df['RightBound'] = np.where(df['Maximum'] == np.inf, np.inf, df['RightBound'])
     
@@ -837,31 +845,328 @@ def average(df,
     if len(values) == 1:
         censor_column = 'CensorComponent'
         numeric_column = 'NumericComponent'
-        df = split(df,values[0])
+        df = result_to_components(df,values[0])
     # Else define the names to use for the censor and numeric columns
     else:
         censor_column = values[0]
         numeric_column = values[1]
     
     # Convert the results from censor and numeric components to an interval representation
-    df = result_to_interval(df, censor_column, numeric_column, include_negative_interval)
+    df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
     # Cycle through each grouping
     for grouping in groupby_columns:
-        # Using the intervals, determine the range of possible minima
+        # Using the intervals, determine the range of possible averages
         df = average_interval(df, grouping)
     
     # Create interval notation for the minimum
-    df = interval_notation(df)
+    df = interval_notation(df, precision_rounding)
     
     # Convert the interval for the minimum into censor and numeric notation
-    df = interval_to_result(df, censor_column, numeric_column,
-                            focus_high_potential = focus_high_potential,
-                            include_negative_interval = include_negative_interval,
-                            precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
+    df = interval_to_components(df, censor_column, numeric_column,
+                                focus_high_potential = focus_high_potential,
+                                include_negative_interval = include_negative_interval,
+                                precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
     
     # Combine the censor and numeric components into a result
-    df = create_result(df, censor_column, numeric_column, precision_rounding)
+    df = components_to_result(df, censor_column, numeric_column, precision_rounding)
+    
+    return df
+
+#%% Percentile Result
+
+def percentile_interval(df,
+                        percentile,
+                        method = 'hazen',
+                        groupby_columns = []):
+    '''
+    A function that analyses the interval notation form of results returned
+    from components_to_interval to generate a new interval for percentiles. Groups
+    of results can be defined by including the columns that should be used to
+    create groups.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains results in a specific interval notation.
+    percentile : float
+        The desired percentile. Values should be between 0 and 100.
+    method : string
+        The percentile method. The options and definitions come from:
+            https://environment.govt.nz/assets/Publications/Files/hazen-percentile-calculator-2.xls
+            Options include the following, ordered from largest to smallest result.
+            - weiball
+            - tukey
+            - blom
+            - hazen
+            - excel
+        The default is hazen.
+    groupby_columns : list of strings, optional
+        List of column names that should be used to create groups.
+        The default is [].
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that has the interval for the percentile (for each group if
+        column names are provided for grouping)
+
+    '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy().reset_index()
+    
+    # Check the percentile is between 0 and 1
+    if percentile < 0 or percentile > 100:
+        raise Exception(f'Percentile out of range. Attempted percentile: {percentile}')
+    
+    # Create column that indicates the generated statistic and append to grouping list
+    df['Statistic'] = f'Percentile-{percentile}'
+    groupby_columns.append('Statistic')
+    
+    # Convert percentile to be between 0 and 1
+    percentile = percentile/100
+    
+    # Determine size of each group
+    df['Size'] = df.groupby(groupby_columns)['SiteID'].transform('size')
+    
+    # Set values for percentile methods
+    method_dict = {'weiball':0.0, 'tukey':1/3, 'blom':3/8, 'hazen':1/2, 'excel':1.0}
+    # https://en.wikipedia.org/wiki/Percentile
+    C = method_dict[method]
+    
+    # Ensure rank is at least 1 and no more than len(data)
+    minimum_size = round(C + (1-C)*max((1-percentile)/percentile,
+                                       percentile/(1-percentile)),10)
+    
+    # Only consider groups that meet the minimum size requirement
+    df = df[df['Size'] >= minimum_size]
+    
+    # Determine left bound and boundary for each group
+    
+    # Change notation of 'Closed' and 'Open' boundaries to 0 and 1, respectively
+    # Use 0 for closed to ensure that closed boundaries are sorted less than open
+    # boundaries when the left bound is tied
+    df['LeftBoundary'] = df['LeftBoundary'].replace(['Closed','Open'], [0,1])
+    
+    # Sort left bound values
+    left = df.copy()[groupby_columns+['Size','LeftBoundary','LeftBound']].sort_values(by=['LeftBound','LeftBoundary'])
+    
+    # Add index for each group
+    left['Index'] = left.groupby(groupby_columns).cumcount() + 1
+    
+    # Determine the rank in each group for the percentile
+    left['Rank'] = round(C + percentile*(left['Size'] + 1 - 2*C),8)
+    
+    # Generate proximity of each result to percentile rank using the index
+    left['Proximity'] = 0
+    
+    conditions = [
+        # If the percentile rank is a whole number, then use that index result
+        (left['Rank'] == left['Index']),
+        # If the percentile rank is less than 1 above the index value,
+        # then assign the appropriate contribution to that index value
+        (left['Rank'] - left['Index']).between(0,1,inclusive='neither'),
+        # If the percentile rank is less than 1 below the index value,
+        # then assign the appropriate contribution to that index value
+        (left['Index'] - left['Rank']).between(0,1,inclusive='neither')
+        ]
+    
+    results = [
+        1,
+        1 - (left['Rank'] - left['Index']),
+        1 - (left['Index'] - left['Rank']),
+        ]
+    
+    left['Proximity'] = np.select(conditions, results, np.nan)
+    
+    # Drop non-contributing rows
+    left = left[left['Proximity'] > 0]
+    
+    # Calculate contribution for index values that contribute to the result
+    left['Contribution'] = left['Proximity'] * left['LeftBound']
+    
+    # Determine left bound and boundary using the sum of the contributions
+    # and an open boundary if any of the contributing values is open
+    left = left.groupby(groupby_columns).agg(LeftBoundary = ('LeftBoundary', 'max'),
+                                             LeftBound = ('Contribution', 'sum'),
+                                             Minimum = ('Contribution', 'min'))
+    
+    # Replace the numeric value for the boundary
+    left['LeftBoundary'] = left['LeftBoundary'].replace([0,1], ['Closed','Open'])
+    
+    # Means with infinite values produce nan values rather than np.inf values
+    # Convert nan to inf only if infinite values are included in the mean
+    left['LeftBound'] = np.where(left['Minimum'] == -np.inf, -np.inf, left['LeftBound'])
+    
+    # Determine right bound and boundary for each group
+    
+    # Change notation of 'Closed' and 'Open' boundaries to 1 and 0, respectively
+    # Use 1 for closed to ensure that closed boundaries are sorted larger than open
+    # boundaries when the right bound is tied
+    df['RightBoundary'] = df['RightBoundary'].replace(['Closed','Open'], [1,0])
+    
+    # Sort right bound values
+    right = df.copy()[groupby_columns+['Size','RightBoundary','RightBound']].sort_values(by=['RightBound','RightBoundary'])
+    
+    # Add index for each group
+    right['Index'] = right.groupby(groupby_columns).cumcount() + 1
+    
+    # Determine the rank in each group for the percentile
+    right['Rank'] = round(C + percentile*(right['Size'] + 1 - 2*C),8)
+    
+    # Generate proximity of each result to percentile rank using the index
+    right['Proximity'] = 0
+    
+    conditions = [
+        # If the percentile rank is a whole number, then use that index result
+        (right['Rank'] == right['Index']),
+        # If the percentile rank is less than 1 above the index value,
+        # then assign the appropriate contribution to that index value
+        (right['Rank'] - right['Index']).between(0,1,inclusive='neither'),
+        # If the percentile rank is less than 1 below the index value,
+        # then assign the appropriate contribution to that index value
+        (right['Index'] - right['Rank']).between(0,1,inclusive='neither')
+        ]
+    
+    results = [
+        1,
+        1 - (right['Rank'] - right['Index']),
+        1 - (right['Index'] - right['Rank']),
+        ]
+    
+    right['Proximity'] = np.select(conditions, results, np.nan)
+    
+    # Drop non-contributing rows
+    right = right[right['Proximity'] > 0]
+    
+    # Calculate contribution for index values that contribute to the result
+    right['Contribution'] = right['Proximity'] * right['RightBound']
+    
+    # Determine right bound and boundary using the sum of the contributions
+    # and an open boundary if any of the contributing values is open
+    right = right.groupby(groupby_columns).agg(RightBound = ('Contribution', 'sum'),
+                                               Maximum = ('Contribution', 'max'),
+                                               RightBoundary = ('RightBoundary', 'min'))
+    
+    # Replace the numeric value for the boundary
+    right['RightBoundary'] = right['RightBoundary'].replace([1,0], ['Closed','Open'])
+    
+    # Means with infinite values produce nan values rather than np.inf values
+    # Convert nan to inf only if infinite values are included in the mean
+    right['RightBound'] = np.where(right['Maximum'] == np.inf, np.inf, right['RightBound'])
+    
+    # Merge the two boundaries to create the interval for the percentile
+    # Check that the merge is 1-to-1
+    df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
+    
+    return df
+
+def percentile(df,
+               percentile,
+               method = 'hazen',
+               groupby_columns = [[]],
+               values = ['CensorComponent','NumericComponent'],
+               focus_high_potential = True,
+               include_negative_interval = False,
+               precision_tolerance_to_drop_censor = 0.25,
+               precision_rounding = True):
+    '''
+    A function that combines the relevant percentile and utility functions to
+    generate the percenitle results for groups within a DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains censored or uncensored results
+    percentile : float
+        The desired percentile. Values should be between 0 and 100.
+    method : string
+        The percentile method. The options and definitions come from:
+            https://environment.govt.nz/assets/Publications/Files/hazen-percentile-calculator-2.xls
+            Options include the following, ordered from largest to smallest result.
+            - weiball
+            - tukey
+            - blom
+            - hazen
+            - excel
+        The default is hazen.
+    groupby_columns : list of lists of strings, optional
+        List of column names that should be used to create groups. A percentile
+        will be found within each group. Multiple lists can be supplied to
+        perform sequential median percentiles before calculating a percentile
+        over the final grouping.
+        The default is [[]].
+    values : list of strings, optional
+        The column name(s) for the column(s) that contain the results. If a 
+        single column name is given, it is assumed that the column contains
+        combined censor and numeric components. If two column names are
+        provided, then the first should only contain one of five censors (<,≤,≥,>)
+        and the second should contain only numeric data.
+        The default is ['CensorComponent','NumericComponent'].
+    focus_high_potential : boolean, optional
+        If True, then information on the highest potential result will be
+        focused over the lowest potential result.
+    include_negative_interval : boolean, optional
+        If True, then all positive and negative values are considered
+        e.g., <0.5 would be converted to (-np.inf,5).
+        If False, then only non-negative values are considered
+        e.g., <0.5 would be converted to [0,5).
+        This setting only affects results if focus_high_potential is False.
+        The default is False.
+    precision_tolerance_to_drop_censor : float, optional
+        Threshold for reporting censored vs non-censored results.
+        Using the default, a result that is known to be in the interval (0.3, 0.5)
+        would be returned as 0.4, whereas a tolerance of 0 would yield a
+        result of <0.5 or >0.3 depending on the value of focus_highest_potential.
+        The default is 0.25.
+    precision_rounding : boolean, optional
+        If True, a rounding method is applied to round results to have no more
+        decimals than what can be measured.
+        The default is True.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that contains calculated percentiles
+
+    '''
+    
+    # If single result column provided, then split column
+    if len(values) == 1:
+        censor_column = 'CensorComponent'
+        numeric_column = 'NumericComponent'
+        df = result_to_components(df,values[0])
+    # Else define the names to use for the censor and numeric columns
+    else:
+        censor_column = values[0]
+        numeric_column = values[1]
+    
+    # Convert the results from censor and numeric components to an interval representation
+    df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
+    
+    # Cycle through each grouping
+    for grouping in groupby_columns:
+        # Only apply percentile to final grouping
+        if grouping == groupby_columns[-1]:
+            # Using the intervals, determine the range of possible percentiles
+            df = percentile_interval(df, percentile, method, grouping)
+        # Apply median to all prior groupings
+        else:
+            # Using the intervals, determine the range of possible medians
+            df = percentile_interval(df, 50, method, grouping)
+    
+    # Create interval notation for the average
+    df = interval_notation(df, precision_rounding)
+    
+    # Convert the interval for the minimum into censor and numeric notation
+    df = interval_to_components(df, censor_column, numeric_column,
+                                focus_high_potential = focus_high_potential,
+                                include_negative_interval = include_negative_interval,
+                                precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
+    
+    # Combine the censor and numeric components into a result
+    df = components_to_result(df, censor_column, numeric_column, precision_rounding)
     
     return df
 
