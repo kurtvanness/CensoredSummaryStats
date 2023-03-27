@@ -1,9 +1,11 @@
 [tool.poetry]
 name = "censoredsummarystats"
-version = "0.1.0"
-description = ""
-authors = ["kurtvanness <vanness.kurt@gmail.com>"]
+version = "0.1.6"
+description = "A python package for calculating summary stats on censored data (data that contains < and > symbols)."
+authors = ["Kurt van Ness <vanness.kurt@gmail.com>"]
 readme = "README.md"
+repository = "https://github.com/kurtvanness/CensoredSummaryStats"
+packages = [{include = "censoredsummarystats"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
