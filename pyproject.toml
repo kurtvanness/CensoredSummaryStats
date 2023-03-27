@@ -1,6 +1,15 @@
-[project]
-name = "CensoredSummaryStats"
+[tool.poetry]
+name = "censoredsummarystats"
 version = "0.1.0"
-dependencies = [
-    "numpy"
-]
+description = ""
+authors = ["kurtvanness <vanness.kurt@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.24.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
