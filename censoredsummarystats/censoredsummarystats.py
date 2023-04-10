@@ -514,7 +514,7 @@ def maximum(df,
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
         combined censor and numeric components. If two column names are
-        provided, then the first should only contain one of five censors (<,≤,≥,>)
+        provided, then the first should only contain one of five censors (<,≤,,≥,>)
         and the second should contain only numeric data.
         The default is ['CensorComponent','NumericComponent'].
     include_negative_interval : boolean, optional
@@ -668,7 +668,7 @@ def minimum(df,
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
         combined censor and numeric components. If two column names are
-        provided, then the first should only contain one of five censors (<,≤,≥,>)
+        provided, then the first should only contain one of five censors (<,≤,,≥,>)
         and the second should contain only numeric data.
         The default is ['CensorComponent','NumericComponent'].
     include_negative_interval : boolean, optional
@@ -810,7 +810,7 @@ def average(df,
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
         combined censor and numeric components. If two column names are
-        provided, then the first should only contain one of five censors (<,≤,≥,>)
+        provided, then the first should only contain one of five censors (<,≤,,≥,>)
         and the second should contain only numeric data.
         The default is ['CensorComponent','NumericComponent'].
     focus_high_potential : boolean, optional
@@ -935,7 +935,8 @@ def percentile_interval(df,
     # https://en.wikipedia.org/wiki/Percentile
     C = method_dict[method]
     
-    # Ensure rank is at least 1 and no more than len(data)
+    # Calculate minimum data size for percentile method to 
+    # ensure rank is at least 1 and no more than len(data)
     minimum_size = round(C + (1-C)*max((1-percentile)/percentile,
                                        percentile/(1-percentile)),10)
     
@@ -1101,7 +1102,7 @@ def percentile(df,
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
         combined censor and numeric components. If two column names are
-        provided, then the first should only contain one of five censors (<,≤,≥,>)
+        provided, then the first should only contain one of five censors (<,≤,,≥,>)
         and the second should contain only numeric data.
         The default is ['CensorComponent','NumericComponent'].
     focus_high_potential : boolean, optional
@@ -1167,6 +1168,73 @@ def percentile(df,
     
     # Combine the censor and numeric components into a result
     df = components_to_result(df, censor_column, numeric_column, precision_rounding)
+    
+    return df
+
+def median(df,
+           groupby_columns = [[]],
+           values = ['CensorComponent','NumericComponent'],
+           focus_high_potential = True,
+           include_negative_interval = False,
+           precision_tolerance_to_drop_censor = 0.25,
+           precision_rounding = True):
+    '''
+    A function that generates median results for groups within a DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains censored or uncensored results
+    groupby_columns : list of lists of strings, optional
+        List of column names that should be used to create groups. A percentile
+        will be found within each group. Multiple lists can be supplied to
+        perform sequential median percentiles before calculating a percentile
+        over the final grouping.
+        The default is [[]].
+    values : list of strings, optional
+        The column name(s) for the column(s) that contain the results. If a 
+        single column name is given, it is assumed that the column contains
+        combined censor and numeric components. If two column names are
+        provided, then the first should only contain one of five censors (<,≤,,≥,>)
+        and the second should contain only numeric data.
+        The default is ['CensorComponent','NumericComponent'].
+    focus_high_potential : boolean, optional
+        If True, then information on the highest potential result will be
+        focused over the lowest potential result.
+    include_negative_interval : boolean, optional
+        If True, then all positive and negative values are considered
+        e.g., <0.5 would be converted to (-np.inf,5).
+        If False, then only non-negative values are considered
+        e.g., <0.5 would be converted to [0,5).
+        This setting only affects results if focus_high_potential is False.
+        The default is False.
+    precision_tolerance_to_drop_censor : float, optional
+        Threshold for reporting censored vs non-censored results.
+        Using the default, a result that is known to be in the interval (0.3, 0.5)
+        would be returned as 0.4, whereas a tolerance of 0 would yield a
+        result of <0.5 or >0.3 depending on the value of focus_highest_potential.
+        The default is 0.25.
+    precision_rounding : boolean, optional
+        If True, a rounding method is applied to round results to have no more
+        decimals than what can be measured.
+        The default is True.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that contains calculated percentiles
+
+    '''
+    
+    # Call percentile function with percentile = 50
+    df = percentile(df,
+                    50,
+                    groupby_columns = groupby_columns,
+                    values = values,
+                    focus_high_potential = focus_high_potential,
+                    include_negative_interval = include_negative_interval,
+                    precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor,
+                    precision_rounding = precision_rounding)
     
     return df
 
