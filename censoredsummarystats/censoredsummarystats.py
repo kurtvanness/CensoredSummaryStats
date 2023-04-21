@@ -423,7 +423,7 @@ def components_to_result(df,
 #%% Maximum Result
 
 def maximum_interval(df,
-                     groupby_columns = []):
+                     groupby_columns = None):
     '''
     A function that analyses the interval notation form of results returned
     from components_to_interval to generate a new interval for the maximum. Groups
@@ -436,7 +436,7 @@ def maximum_interval(df,
         DataFrame that contains results in a specific interval notation.
     groupby_columns : list of strings, optional
         List of column names that should be used to create groups.
-        The default is [].
+        The default is None.
 
     Returns
     -------
@@ -447,7 +447,11 @@ def maximum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
+    
+    # If no groups create empty list
+    if groupby_columns == None:
+        groupby_columns = []
     
     # Create column that indicates the generated statistic and append to grouping list
     df['Statistic'] = 'Maximum'
@@ -489,10 +493,13 @@ def maximum_interval(df,
     # Check that the merge is 1-to-1
     df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
     
+    # Reset index after groupby
+    df = df.reset_index()
+    
     return df
 
 def maximum(df,
-            groupby_columns = [[]],
+            groupby_columns = None,
             values = ['CensorComponent','NumericComponent'],
             include_negative_interval = False,
             precision_tolerance_to_drop_censor = 0.25,
@@ -505,11 +512,11 @@ def maximum(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of lists of strings, optional
+    groupby_columns : lists of strings (or list of lists), optional
         List of column names that should be used to create groups. A maximum
         will be found within each group. Multiple lists can be supplied to
         perform sequential maxima before converting intervals to a result.
-        The default is [[]].
+        The default is None.
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -542,6 +549,9 @@ def maximum(df,
 
     '''
     
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
     # If single result column provided, then split column
     if len(values) == 1:
         censor_column = 'CensorComponent'
@@ -555,8 +565,12 @@ def maximum(df,
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Cycle through each grouping
-    for grouping in groupby_columns:
+    # If multiple groupby lists, then cycle through them in order
+    if isinstance(groupby_columns[0],list):
+        for grouping in groupby_columns:
+            # Using the intervals, determine the range of possible maxima
+            df = maximum_interval(df, grouping)
+    else:
         # Using the intervals, determine the range of possible maxima
         df = maximum_interval(df, grouping)
     
@@ -577,7 +591,7 @@ def maximum(df,
 #%% Minimum Result
 
 def minimum_interval(df,
-                     groupby_columns = []):
+                     groupby_columns = None):
     '''
     A function that analyses the interval notation form of results returned
     from components_to_interval to generate a new interval for the minimum. Groups
@@ -590,7 +604,7 @@ def minimum_interval(df,
         DataFrame that contains results in a specific interval notation.
     groupby_columns : list of strings, optional
         List of column names that should be used to create groups.
-        The default is [].
+        The default is None.
 
     Returns
     -------
@@ -601,8 +615,12 @@ def minimum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
     
+    # If no groups create empty list
+    if groupby_columns == None:
+        groupby_columns = []
+        
     # Create column that indicates the generated statistic and append to grouping list
     df['Statistic'] = 'Minimum'
     groupby_columns.append('Statistic')
@@ -643,10 +661,13 @@ def minimum_interval(df,
     # Check that the merge is 1-to-1
     df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
     
+    # Reset index after groupby
+    df = df.reset_index()
+    
     return df
 
 def minimum(df,
-            groupby_columns = [[]],
+            groupby_columns = None,
             values = ['CensorComponent','NumericComponent'],
             include_negative_interval = False,
             precision_tolerance_to_drop_censor = 0.25,
@@ -659,11 +680,11 @@ def minimum(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of lists of strings, optional
+    groupby_columns : lists of strings (or list of lists), optional
         List of column names that should be used to create groups. A minimum
         will be found within each group. Multiple lists can be supplied to
         perform sequential minima before converting intervals to a result.
-        The default is [[]].
+        The default is None.
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -696,6 +717,9 @@ def minimum(df,
 
     '''
     
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
     # If single result column provided, then split column
     if len(values) == 1:
         censor_column = 'CensorComponent'
@@ -709,8 +733,12 @@ def minimum(df,
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Cycle through each grouping
-    for grouping in groupby_columns:
+    # If multiple groupby lists, then cycle through them in order
+    if isinstance(groupby_columns[0],list):
+        for grouping in groupby_columns:
+            # Using the intervals, determine the range of possible minima
+            df = minimum_interval(df, grouping)
+    else:
         # Using the intervals, determine the range of possible minima
         df = minimum_interval(df, grouping)
     
@@ -731,7 +759,7 @@ def minimum(df,
 #%% Average Result
 
 def average_interval(df,
-                     groupby_columns = []):
+                     groupby_columns = None):
     '''
     A function that analyses the interval notation form of results returned
     from components_to_interval to generate a new interval for the average. Groups
@@ -744,7 +772,7 @@ def average_interval(df,
         DataFrame that contains results in a specific interval notation.
     groupby_columns : list of strings, optional
         List of column names that should be used to create groups.
-        The default is [].
+        The default is None.
 
     Returns
     -------
@@ -755,7 +783,11 @@ def average_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
+    
+    # If no groups create empty list
+    if groupby_columns == None:
+        groupby_columns = []
     
     # Create column that indicates the generated statistic and append to grouping list
     df['Statistic'] = 'Average'
@@ -784,10 +816,13 @@ def average_interval(df,
     df['LeftBound'] = np.where(df['Minimum'] == -np.inf, -np.inf, df['LeftBound'])
     df['RightBound'] = np.where(df['Maximum'] == np.inf, np.inf, df['RightBound'])
     
+    # Reset index after groupby
+    df = df.reset_index()
+    
     return df
 
 def average(df,
-            groupby_columns = [[]],
+            groupby_columns = None,
             values = ['CensorComponent','NumericComponent'],
             focus_high_potential = True,
             include_negative_interval = False,
@@ -801,11 +836,11 @@ def average(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of lists of strings, optional
+    groupby_columns : lists of strings (or list of lists), optional
         List of column names that should be used to create groups. An average
         will be found within each group. Multiple lists can be supplied to
         perform sequential averaging before converting intervals to a result.
-        The default is [[]].
+        The default is None.
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -841,6 +876,9 @@ def average(df,
 
     '''
     
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
     # If single result column provided, then split column
     if len(values) == 1:
         censor_column = 'CensorComponent'
@@ -854,8 +892,12 @@ def average(df,
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Cycle through each grouping
-    for grouping in groupby_columns:
+    # If multiple groupby lists, then cycle through them in order
+    if isinstance(groupby_columns[0],list):
+        for grouping in groupby_columns:
+            # Using the intervals, determine the range of possible averages
+            df = average_interval(df, grouping)
+    else:
         # Using the intervals, determine the range of possible averages
         df = average_interval(df, grouping)
     
@@ -878,7 +920,7 @@ def average(df,
 def percentile_interval(df,
                         percentile,
                         method = 'hazen',
-                        groupby_columns = []):
+                        groupby_columns = None):
     '''
     A function that analyses the interval notation form of results returned
     from components_to_interval to generate a new interval for percentiles. Groups
@@ -903,7 +945,7 @@ def percentile_interval(df,
         The default is hazen.
     groupby_columns : list of strings, optional
         List of column names that should be used to create groups.
-        The default is [].
+        The default is None.
 
     Returns
     -------
@@ -914,7 +956,11 @@ def percentile_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
+    
+    # If no groups create empty list
+    if groupby_columns == None:
+        groupby_columns = []
     
     # Check the percentile is between 0 and 1
     if percentile < 0 or percentile > 100:
@@ -1061,12 +1107,15 @@ def percentile_interval(df,
     # Check that the merge is 1-to-1
     df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
     
+    # Reset index after groupby
+    df = df.reset_index()
+    
     return df
 
 def percentile(df,
                percentile,
                method = 'hazen',
-               groupby_columns = [[]],
+               groupby_columns = None,
                values = ['CensorComponent','NumericComponent'],
                focus_high_potential = True,
                include_negative_interval = False,
@@ -1092,12 +1141,12 @@ def percentile(df,
             - hazen
             - excel
         The default is hazen.
-    groupby_columns : list of lists of strings, optional
+    groupby_columns : lists of strings (or list of lists), optional
         List of column names that should be used to create groups. A percentile
         will be found within each group. Multiple lists can be supplied to
         perform sequential median percentiles before calculating a percentile
         over the final grouping.
-        The default is [[]].
+        The default is None.
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -1133,6 +1182,9 @@ def percentile(df,
 
     '''
     
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
     # If single result column provided, then split column
     if len(values) == 1:
         censor_column = 'CensorComponent'
@@ -1146,16 +1198,20 @@ def percentile(df,
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, censor_column, numeric_column, include_negative_interval)
     
-    # Cycle through each grouping
-    for grouping in groupby_columns:
-        # Only apply percentile to final grouping
-        if grouping == groupby_columns[-1]:
-            # Using the intervals, determine the range of possible percentiles
-            df = percentile_interval(df, percentile, method, grouping)
-        # Apply median to all prior groupings
-        else:
-            # Using the intervals, determine the range of possible medians
-            df = percentile_interval(df, 50, method, grouping)
+    # If multiple groupby lists, then cycle through them in order
+    if isinstance(groupby_columns[0],list):
+        for grouping in groupby_columns:
+            # Only apply percentile to final grouping
+            if grouping == groupby_columns[-1]:
+                # Using the intervals, determine the range of possible percentiles
+                df = percentile_interval(df, percentile, method, grouping)
+            # Apply median to all prior groupings
+            else:
+                # Using the intervals, determine the range of possible medians
+                df = percentile_interval(df, 50, method, grouping)
+    else:
+        # Using the intervals, determine the range of possible percentiles
+        df = percentile_interval(df, percentile, method, grouping)
     
     # Create interval notation for the average
     df = interval_notation(df, precision_rounding)
@@ -1172,7 +1228,7 @@ def percentile(df,
     return df
 
 def median(df,
-           groupby_columns = [[]],
+           groupby_columns = None,
            values = ['CensorComponent','NumericComponent'],
            focus_high_potential = True,
            include_negative_interval = False,
@@ -1185,12 +1241,12 @@ def median(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    groupby_columns : list of lists of strings, optional
-        List of column names that should be used to create groups. A percentile
+    groupby_columns : lists of strings (or list of lists), optional
+        List of column names that should be used to create groups. A median
         will be found within each group. Multiple lists can be supplied to
-        perform sequential median percentiles before calculating a percentile
+        perform sequential median percentiles before calculating a median
         over the final grouping.
-        The default is [[]].
+        The default is None.
     values : list of strings, optional
         The column name(s) for the column(s) that contain the results. If a 
         single column name is given, it is assumed that the column contains
@@ -1225,6 +1281,9 @@ def median(df,
         DataFrame that contains calculated percentiles
 
     '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy()
     
     # Call percentile function with percentile = 50
     df = percentile(df,
