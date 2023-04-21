@@ -117,9 +117,9 @@ def interval_notation(df, precision_rounding=True):
 #%%% Convert between, results, components, intervals
 
 def result_to_components(df,
-          value_column,
-          censor_column = 'CensorComponent',
-          numeric_column = 'NumericComponent'):
+                         value_column,
+                         censor_column = 'CensorComponent',
+                         numeric_column = 'NumericComponent'):
     '''
     A function that separates censors (<,≤,≥,>) from a result. Splitting the
     censor component from the numeric component enables the use of numeric
@@ -237,11 +237,11 @@ def components_to_interval(df,
 
 
 def interval_to_components(df,
-                       censor_column = 'CensorComponent',
-                       numeric_column = 'NumericComponent',
-                       focus_high_potential = True,
-                       include_negative_interval = False,
-                       precision_tolerance_to_drop_censor = 0.25):
+                           censor_column = 'CensorComponent',
+                           numeric_column = 'NumericComponent',
+                           focus_high_potential = True,
+                           include_negative_interval = False,
+                           precision_tolerance_to_drop_censor = 0.25):
     '''
     A function that determines the censor and numeric components
     from intervals
@@ -373,6 +373,9 @@ def interval_to_components(df,
     # Only return the censor and numeric columns
     df = df[['Interval',censor_column,numeric_column]]
     
+    # Reset index
+    df = df.reset_index()
+    
     return df
 
 
@@ -447,7 +450,7 @@ def maximum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # If no groups create empty list
     if groupby_columns == None:
@@ -492,9 +495,6 @@ def maximum_interval(df,
     # Merge the two boundaries to create the interval for the maximum
     # Check that the merge is 1-to-1
     df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
-    
-    # Reset index after groupby
-    df = df.reset_index()
     
     return df
 
@@ -615,7 +615,7 @@ def minimum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # If no groups create empty list
     if groupby_columns == None:
@@ -660,9 +660,6 @@ def minimum_interval(df,
     # Merge the two boundaries to create the interval for the minimum
     # Check that the merge is 1-to-1
     df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
-    
-    # Reset index after groupby
-    df = df.reset_index()
     
     return df
 
@@ -783,7 +780,7 @@ def average_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # If no groups create empty list
     if groupby_columns == None:
@@ -815,9 +812,6 @@ def average_interval(df,
     # Convert nan to inf only if infinite values are included in the mean
     df['LeftBound'] = np.where(df['Minimum'] == -np.inf, -np.inf, df['LeftBound'])
     df['RightBound'] = np.where(df['Maximum'] == np.inf, np.inf, df['RightBound'])
-    
-    # Reset index after groupby
-    df = df.reset_index()
     
     return df
 
@@ -956,7 +950,7 @@ def percentile_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy()
+    df = df.copy().reset_index()
     
     # If no groups create empty list
     if groupby_columns == None:
@@ -1106,9 +1100,6 @@ def percentile_interval(df,
     # Merge the two boundaries to create the interval for the percentile
     # Check that the merge is 1-to-1
     df = left.merge(right, how = 'outer', on = groupby_columns, validate = '1:1')
-    
-    # Reset index after groupby
-    df = df.reset_index()
     
     return df
 
