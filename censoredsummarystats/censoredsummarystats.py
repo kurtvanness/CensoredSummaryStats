@@ -34,10 +34,11 @@ def string_precision(value):
     # Check for infinite values
     if abs(value) == np.inf:
         string = str(value)
-    # Values above 100 or are rounded to 100 should be expressed as integers
-    # with no more than 3 significant digits.
+    # Values above 100 or are rounded to 100 should be rounded to 3 significant digits
+    # Furthermore, they should be expressed as integers using a comma as the thousands separator
     elif round(abs(value),1) >= 100:
-        string = str(int(float(f'{value:.3g}')))
+        string = f'{value:.3g}'
+        string = f'{int(float(string)):,}'
     # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
     elif round(abs(value),2) >= 10:
         string = f'{value:.1f}'
