@@ -2,7 +2,8 @@
 
 import numpy as np
 
-def string_precision(value):
+def string_precision(value,
+                     thousands_comma=False):
     '''
     A function that applies a specified rounding method that is value
     dependent. This method is specifically designed to reflect the
@@ -26,10 +27,13 @@ def string_precision(value):
     if abs(value) == np.inf:
         string = str(value)
     # Values above 100 or are rounded to 100 should be rounded to 3 significant digits
-    # Furthermore, they should be expressed as integers using a comma as the thousands separator
     elif round(abs(value),1) >= 100:
         string = f'{value:.3g}'
-        string = f'{int(float(string)):,}'
+        # Include thousands separator, depending on input
+        if thousands_comma:
+            string = f'{int(float(string)):,}'
+        else:
+            string = str(int(float(string)))
     # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
     elif round(abs(value),2) >= 10:
         string = f'{value:.1f}'
