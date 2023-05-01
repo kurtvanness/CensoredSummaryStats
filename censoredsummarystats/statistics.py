@@ -36,6 +36,12 @@ def result_to_components(df,
         DataFrame containing a column to be split into components
     result_col : string
         Column name for the column that contains the results to be split
+    censor_col : string
+        Column name to give the created censor column.
+        The default is CensorComponent.
+    numeric_col : string
+        Column name to give the created numeric column.
+        The default is NumericComponent.
 
     Returns
     -------
@@ -650,7 +656,7 @@ def minimum(df,
     df = interval_notation(df, precision_rounding)
     
     # Combine the censor and numeric components into a result
-    df = components_to_result(df, censor_col, numeric_col, precision_rounding)
+    df = components_to_result(df, precision_rounding)
     
     # Drop working columns
     df = df.drop(df.filter(regex='__').columns, axis=1)
