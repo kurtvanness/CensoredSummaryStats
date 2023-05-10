@@ -8,6 +8,10 @@ result_col = 'Result'
 censor_col = 'CensorComponent'
 numeric_col = 'NumericComponent'
 interval_col = 'Interval'
+percent_exceedances_col = 'PercentExceedances'
+exceedances_col = 'Exceedances'
+non_exceedances_col = 'NonExceedances'
+ignored_col = 'Ignored'
 left_boundary_col = '__LeftBoundary__'
 left_bound_col = '__LeftBound__'
 midpoint_col = '__MidPoint__'
@@ -365,7 +369,7 @@ def maximum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
     
     # Create column that indicates the generated statistic and append to grouping list
     df[stat_col] = 'Maximum'
@@ -529,7 +533,7 @@ def minimum_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
     
     # Create column that indicates the generated statistic and append to grouping list
     df[stat_col] = 'Minimum'
@@ -693,7 +697,7 @@ def average_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
     
     # Create column that indicates the generated statistic and append to grouping list
     df[stat_col] = 'Average'
@@ -712,7 +716,7 @@ def average_interval(df,
                             '__Minimum__': (left_bound_col,'min'),
                             left_bound_col: (left_bound_col,'mean'),
                             right_bound_col: (right_bound_col,'mean'),
-                            '__Maximum__': (left_bound_col,'max'),
+                            '__Maximum__': (right_bound_col,'max'),
                             right_boundary_col: (right_boundary_col,'max')
                             })
     
@@ -829,7 +833,7 @@ def average(df,
 def percentile_interval(df,
                         groupby_cols,
                         percentile,
-                        method = 'hazen',):
+                        method = 'hazen'):
     '''
     A function that analyses the interval notation form of results returned
     from components_to_interval to generate a new interval for percentiles. Groups
@@ -864,11 +868,11 @@ def percentile_interval(df,
     '''
     
     # Create a copy of the DataFrame
-    df = df.copy().reset_index()
+    df = df.copy()
     
     # Check the percentile is between 0 and 1
     if percentile < 0 or percentile > 100:
-        raise Exception(f'Percentile out of range. Attempted percentile: {percentile}')
+        raise ValueError(f'Percentile out of range. Attempted percentile: {percentile}')
     
     # Create column that indicates the generated statistic and append to grouping list
     df[stat_col] = f'Percentile-{percentile}'
@@ -1204,3 +1208,320 @@ def median(df,
     
     return df
 
+#%% Percent Exceedance Result
+
+def percent_exceedance_assessment(df,
+                                  threshold,
+                                  count_threshold_as_exceedance=False):
+    '''
+    A function that analyses the interval notation form of results returned
+    from components_to_interval and determines whether the result is an
+    exceedance or not.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains results in a specific interval notation.
+    threshold : float
+        The threshold of interest.
+    count_threshold_as_exceedance : boolean
+        Set as True if the threshold value should be counted as an exceedance.
+        The default is False.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that has an exceedance assessment for each result.
+
+    '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
+    # Check that input is integer or float
+    if not isinstance(threshold, (int, float)):
+        raise ValueError('threshold input needs to be integer or float type.')
+    
+    # Set conditions depending on whether the threshold is an exceedance
+    if count_threshold_as_exceedance:
+        # Set conditions for exceedances and non-exceedances
+        conditions = [
+            # If the left bound is greater than or equal to the threshold than exceedance
+            (df[left_bound_col] >= threshold),
+            # If the right bound is less than the treshold than non-exceedance
+            (df[right_bound_col] < threshold)
+            ]
+    else:
+        # Set conditions for exceedances and non-exceedances
+        conditions = [
+            # If the left bound is greater than the threshold than exceedance
+            (df[left_bound_col] > threshold),
+            # If the right bound is less than or equal to the treshold than non-exceedance
+            (df[right_bound_col] <= threshold)
+            ]
+    # Exceedances are indicated by integers
+    # (1=exceedance, 0=non-exceedance)
+    results = [
+        1,
+        0
+        ]
+    # Default exceedance (np.nan=unknown)
+    df['__Exceedance__'] = np.select(conditions, results, np.nan)
+    
+    return df
+
+def percent_exceedance(df,
+                       result_col,
+                       threshold,
+                       count_threshold_as_exceedance=False,
+                       groupby_cols = None,
+                       include_negative_interval = False):
+    '''
+    A function that combines the relevant percentile and utility functions to
+    generate the percenitle results for groups within a DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains censored or uncensored results
+    result_col : string
+        The column name for the column that contain the results as text.
+        Only four possible censors should be used (<,≤,≥,>).
+    threshold : float
+        The threshold of interest.
+    count_threshold_as_exceedance : boolean
+        Set as True if the threshold value should be counted as an exceedance.
+        The default is False.
+    groupby_cols : lists of strings (or list of two lists), optional
+        List of column names that should be used to create groups. Percentage
+        of exceedances will be found within each group. Two lists can be
+        supplied to first find the maximum within each group before
+        determining the percentage of exceedances over the second grouping.
+        The default is None.
+    include_negative_interval : boolean, optional
+        If True, then all positive and negative values are considered
+        e.g., <0.5 would be converted to (-np.inf,5).
+        If False, then only non-negative values are considered
+        e.g., <0.5 would be converted to [0,5).
+        This setting only affects results if focus_high_potential is False.
+        The default is False.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that contains calculated percentiles
+
+    '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
+    # Split the result into censor and numeric components
+    df = result_to_components(df,result_col)
+    
+    # Convert the results from censor and numeric components to an interval representation
+    df = components_to_interval(df, include_negative_interval)
+    
+    # Assess exceedances
+    df = percent_exceedance_assessment(df,
+                                       threshold=threshold,
+                                       count_threshold_as_exceedance=count_threshold_as_exceedance)
+    
+    # If there are no groupby-columns, then calculate percent exceedances of all results
+    if not groupby_cols:
+        df = df.agg(**{
+                exceedances_col: ('__Exceedance__','sum'),
+                '__DeterminedExceedances__': ('__Exceedance__','count'),
+                '__TotalCount__': ('__Exceedance__','size')
+                }).transpose().reset_index(drop=True)
+    # If the groupby_cols is a list of lists, then assess maximums for first grouping
+    # and percentage of exceedances for the second grouping
+    elif (isinstance(groupby_cols[0],list)) & (len(groupby_cols) != 2):
+        raise ValueError('Two lists must be included for groupby_cols that is a list of lists.')
+    elif isinstance(groupby_cols[0],list):
+        # Use maximum within each group for first grouping
+        df = df.groupby(groupby_cols[0])['__Exceedance__'].max().reset_index()
+        # Use second grouping for percentage of exceedances
+        df = df.groupby(groupby_cols[1]).agg(**{
+                exceedances_col: ('__Exceedance__','sum'),
+                '__DeterminedExceedances__': ('__Exceedance__','count'),
+                '__TotalCount__': ('__Exceedance__','size')
+                })
+    # Else the groupby_cols is a list of column names
+    else:
+        df = df.groupby(groupby_cols).agg(**{
+                exceedances_col: ('__Exceedance__','sum'),
+                '__DeterminedExceedances__': ('__Exceedance__','count'),
+                '__TotalCount__': ('__Exceedance__','size')
+                })
+    
+    # Determine counts and calculate percentage
+    df[non_exceedances_col] = df['__DeterminedExceedances__'] - df[exceedances_col]
+    df[ignored_col] = df['__TotalCount__']-df['__DeterminedExceedances__']
+    df[percent_exceedances_col] = df[exceedances_col] / df['__DeterminedExceedances__'] * 100
+    
+    # Drop working columns
+    df = df.drop(df.filter(regex='__').columns, axis=1)
+    
+    # Reorder columns
+    for col in [percent_exceedances_col,exceedances_col,non_exceedances_col,ignored_col]:
+        df[col] = df.pop(col)
+    
+    return df
+
+#%% Addition
+
+def add_intervals(df,
+                  groupby_cols):
+    '''
+    A function that adds the interval notation form of results returned
+    from components_to_interval to generate a new interval for the sum. Groups
+    of results can be defined by including the columns that should be used to
+    create groups.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains results in a specific interval notation.
+    groupby_cols : list of strings
+        List of column names that should be used to create groups.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that has the interval for the sum (for each group if
+        column names are provided for grouping)
+
+    '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
+    # Create column that indicates the generated statistic and append to grouping list
+    df[stat_col] = 'Sum'
+    groupby_cols.append(stat_col)
+    
+    # Change notation of 'Closed' and 'Open' boundaries to 0 and 1, respectively
+    # The presence of any open boundaries on one side ensure that the interval for the sum is also
+    # open on that side
+    df[[left_boundary_col,right_boundary_col]] = df[[left_boundary_col,right_boundary_col]].replace(['Closed','Open'], [0,1])
+    
+    # Get the left/right bounds of the sum by adding bounds within the group
+    # Determine whether any Open (now value of 1) boundaries exist. If there are
+    # any open boundaries used in the sum, then the resulting sum will be open
+    df = df.groupby(groupby_cols).agg(**{
+                            left_boundary_col: (left_boundary_col, 'max'),
+                            '__Minimum__': (left_bound_col,'min'),
+                            left_bound_col: (left_bound_col,'sum'),
+                            right_bound_col: (right_bound_col,'sum'),
+                            '__Maximum__': (right_bound_col,'max'),
+                            right_boundary_col: (right_boundary_col,'max')
+                            })
+    
+    # Replace integers with text for boundaries
+    df[[left_boundary_col,right_boundary_col]] = df[[left_boundary_col,right_boundary_col]].replace([0,1], ['Closed','Open'])
+    
+    # Sums with infinite values produce nan values rather than np.inf values
+    # Convert nan to inf only if infinite values are included in the sum
+    df[left_bound_col] = np.where(df['__Minimum__'] == -np.inf, -np.inf, df[left_bound_col])
+    df[right_bound_col] = np.where(df['__Maximum__'] == np.inf, np.inf, df[right_bound_col])
+    
+    # Reset index
+    df = df.reset_index()
+    
+    return df
+
+def addition(df,
+             result_col,
+             groupby_cols = None,
+             focus_high_potential = True,
+             include_negative_interval = False,
+             precision_tolerance_to_drop_censor = 0.25,
+             precision_rounding = True):
+    '''
+    A function that combines the relevant addition and utility functions to
+    sum results for groups within a DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame that contains censored or uncensored results
+    result_col : string
+        The column name for the column that contain the results as text.
+        Only four possible censors should be used (<,≤,≥,>).
+    groupby_cols : lists of strings (or list of lists), optional
+        List of column names that should be used to create groups. An average
+        will be found within each group. Multiple lists can be supplied to
+        perform sequential averaging before converting intervals to a result.
+        The default is None.
+    focus_high_potential : boolean, optional
+        If True, then information on the highest potential result will be
+        focused over the lowest potential result.
+    include_negative_interval : boolean, optional
+        If True, then all positive and negative values are considered
+        e.g., <0.5 would be converted to (-np.inf,5).
+        If False, then only non-negative values are considered
+        e.g., <0.5 would be converted to [0,5).
+        This setting only affects results if focus_high_potential is False.
+        The default is False.
+    precision_tolerance_to_drop_censor : float, optional
+        Threshold for reporting censored vs non-censored results.
+        Using the default, a result that is known to be in the interval (0.3, 0.5)
+        would be returned as 0.4, whereas a tolerance of 0 would yield a
+        result of <0.5 or >0.3 depending on the value of focus_highest_potential.
+        The default is 0.25.
+    precision_rounding : boolean, optional
+        If True, a rounding method is applied to round results to have no more
+        decimals than what can be measured.
+        The default is True.
+
+    Returns
+    -------
+    df : DataFrame
+        DataFrame that contains calculated averages
+
+    '''
+    
+    # Create a copy of the DataFrame
+    df = df.copy()
+    
+    # Split the result into censor and numeric components
+    df = result_to_components(df,result_col)
+    
+    # Convert the results from censor and numeric components to an interval representation
+    df = components_to_interval(df, include_negative_interval)
+    
+    # Using the intervals, determine the range of possible averages
+    
+    # If there are no groupby-columns, then take average of all results
+    if not groupby_cols:
+        df = add_intervals(df, groupby_cols=[])
+    # If the groupby_cols is a list of lists, then perform multiple averages
+    elif isinstance(groupby_cols[0],list):
+        for grouping in groupby_cols:
+            # Using the intervals, determine the range of possible maxima
+            df = add_intervals(df, grouping)
+    # Else the groupby_cols is a list of column names
+    else:
+        df = add_intervals(df, groupby_cols)
+    
+    # Convert the interval for the average into censor and numeric notation
+    df = interval_to_components(df,
+                                focus_high_potential = focus_high_potential,
+                                include_negative_interval = include_negative_interval,
+                                precision_tolerance_to_drop_censor = precision_tolerance_to_drop_censor)
+    
+    # Create interval notation for the average
+    df = interval_notation(df, precision_rounding)
+    
+    # Combine the censor and numeric components into a result
+    df = components_to_result(df, precision_rounding)
+    
+    # Drop working columns
+    df = df.drop(df.filter(regex='__').columns, axis=1)
+    
+    # Reorder columns
+    for col in [stat_col,result_col,censor_col,numeric_col,interval_col]:
+        df[col] = df.pop(col)
+    
+    return df
