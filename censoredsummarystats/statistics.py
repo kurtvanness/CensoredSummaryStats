@@ -25,7 +25,7 @@ right_boundary_col = '__RightBoundary__'
 #%%% Between result and censor/numeric components
 
 def result_to_components(df,
-                         result_col,
+                         results_col,
                          censor_col=censor_col,
                          numeric_col=numeric_col):
     '''
@@ -38,7 +38,7 @@ def result_to_components(df,
     ----------
     df : DataFrame
         DataFrame containing a column to be split into components
-    result_col : string
+    results_col : string
         Column name for the column that contains the results to be split
     censor_col : string
         Column name to give the created censor column.
@@ -59,11 +59,11 @@ def result_to_components(df,
     df = df.copy()
     
     # Ensure the value column is text/string data type.
-    df[result_col] = df[result_col].astype(str)
+    df[results_col] = df[results_col].astype(str)
     
     # Create censor and numeric columns from result column
-    df[censor_col] = df[result_col].str.extract(r'([<≤≥>])').fillna('')
-    df[numeric_col] = df[result_col].str.replace('<|≤|≥|>','',regex=True).astype(float)
+    df[censor_col] = df[results_col].str.extract(r'([<≤≥>])').fillna('')
+    df[numeric_col] = df[results_col].str.replace('<|≤|≥|>','',regex=True).astype(float)
     
     return df
 
@@ -417,7 +417,7 @@ def maximum_interval(df,
     return df
 
 def maximum(df,
-            result_col,
+            results_col,
             groupby_cols = None,
             include_negative_interval = False,
             precision_tolerance_to_drop_censor = 0.25,
@@ -430,7 +430,7 @@ def maximum(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     groupby_cols : lists of strings (or list of lists), optional
@@ -467,7 +467,7 @@ def maximum(df,
     df = df.copy()
     
     # Split the result into censor and numeric components
-    df = result_to_components(df,result_col)
+    df = result_to_components(df,results_col)
     
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, include_negative_interval)
@@ -581,7 +581,7 @@ def minimum_interval(df,
     return df
 
 def minimum(df,
-            result_col,
+            results_col,
             groupby_cols = None,
             include_negative_interval = False,
             precision_tolerance_to_drop_censor = 0.25,
@@ -594,7 +594,7 @@ def minimum(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     groupby_cols : lists of strings (or list of lists), optional
@@ -631,7 +631,7 @@ def minimum(df,
     df = df.copy()
     
     # Split the result into censor and numeric components
-    df = result_to_components(df,result_col)
+    df = result_to_components(df,results_col)
     
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, include_negative_interval)
@@ -734,7 +734,7 @@ def average_interval(df,
     return df
 
 def average(df,
-            result_col,
+            results_col,
             groupby_cols = None,
             focus_high_potential = True,
             include_negative_interval = False,
@@ -748,7 +748,7 @@ def average(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     groupby_cols : lists of strings (or list of lists), optional
@@ -788,7 +788,7 @@ def average(df,
     df = df.copy()
     
     # Split the result into censor and numeric components
-    df = result_to_components(df,result_col)
+    df = result_to_components(df,results_col)
     
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, include_negative_interval)
@@ -1025,7 +1025,7 @@ def percentile_interval(df,
     return df
 
 def percentile(df,
-               result_col,
+               results_col,
                percentile,
                method = 'hazen',
                groupby_cols = None,
@@ -1041,7 +1041,7 @@ def percentile(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     percentile : float
@@ -1094,7 +1094,7 @@ def percentile(df,
     df = df.copy()
     
     # Split the result into censor and numeric components
-    df = result_to_components(df,result_col)
+    df = result_to_components(df,results_col)
     
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, include_negative_interval)
@@ -1143,7 +1143,7 @@ def percentile(df,
     return df
 
 def median(df,
-           result_col,
+           results_col,
            groupby_cols = None,
            focus_high_potential = True,
            include_negative_interval = False,
@@ -1156,7 +1156,7 @@ def median(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     groupby_cols : lists of strings (or list of lists), optional
@@ -1198,7 +1198,7 @@ def median(df,
     
     # Call percentile function with percentile = 50
     df = percentile(df,
-                    result_col,
+                    results_col,
                     50,
                     groupby_cols = groupby_cols,
                     focus_high_potential = focus_high_potential,
@@ -1271,7 +1271,7 @@ def percent_exceedance_assessment(df,
     return df
 
 def percent_exceedance(df,
-                       result_col,
+                       results_col,
                        threshold,
                        count_threshold_as_exceedance=False,
                        groupby_cols = None,
@@ -1284,7 +1284,7 @@ def percent_exceedance(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     threshold : float
@@ -1317,7 +1317,7 @@ def percent_exceedance(df,
     df = df.copy()
     
     # Split the result into censor and numeric components
-    df = result_to_components(df,result_col)
+    df = result_to_components(df,results_col)
     
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, include_negative_interval)
@@ -1432,7 +1432,7 @@ def add_intervals(df,
     return df
 
 def addition(df,
-             result_col,
+             results_col,
              groupby_cols = None,
              focus_high_potential = True,
              include_negative_interval = False,
@@ -1446,7 +1446,7 @@ def addition(df,
     ----------
     df : DataFrame
         DataFrame that contains censored or uncensored results
-    result_col : string
+    results_col : string
         The column name for the column that contain the results as text.
         Only four possible censors should be used (<,≤,≥,>).
     groupby_cols : lists of strings (or list of lists), optional
@@ -1486,7 +1486,7 @@ def addition(df,
     df = df.copy()
     
     # Split the result into censor and numeric components
-    df = result_to_components(df,result_col)
+    df = result_to_components(df,results_col)
     
     # Convert the results from censor and numeric components to an interval representation
     df = components_to_interval(df, include_negative_interval)
