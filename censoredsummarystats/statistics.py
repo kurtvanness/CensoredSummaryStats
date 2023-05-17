@@ -1249,13 +1249,17 @@ def percent_exceedance_assessment(df,
             # If the left bound is greater than or equal to the threshold than exceedance
             (df[left_bound_col] >= threshold),
             # If the right bound is less than the treshold than non-exceedance
-            (df[right_bound_col] < threshold)
+            ((df[right_bound_col] < threshold) | \
+            # If the right bound is equal to the treshold and open than non-exceedance
+            ((df[right_bound_col] == threshold) & (df[right_boundary_col] == 'Open'))),
             ]
     else:
         # Set conditions for exceedances and non-exceedances
         conditions = [
             # If the left bound is greater than the threshold than exceedance
-            (df[left_bound_col] > threshold),
+            ((df[left_bound_col] > threshold) | \
+            # If the left bound isequal to the threshold and open than exceedance
+            ((df[left_bound_col] == threshold) & (df[left_boundary_col] == 'Open'))),
             # If the right bound is less than or equal to the treshold than non-exceedance
             (df[right_bound_col] <= threshold)
             ]
@@ -1331,7 +1335,7 @@ def percent_exceedance(df,
     if not groupby_cols:
         df = df.agg(**{
                 exceedances_col: ('__Exceedance__','sum'),
-                '__DeterminedExceedances__': ('__Exceedance__','count'),
+                '__DeterminedCount__': ('__Exceedance__','count'),
                 '__TotalCount__': ('__Exceedance__','size')
                 }).transpose().reset_index(drop=True)
     # If the groupby_cols is a list of lists, then assess maximums for first grouping
@@ -1344,21 +1348,21 @@ def percent_exceedance(df,
         # Use second grouping for percentage of exceedances
         df = df.groupby(groupby_cols[1]).agg(**{
                 exceedances_col: ('__Exceedance__','sum'),
-                '__DeterminedExceedances__': ('__Exceedance__','count'),
+                '__DeterminedCount__': ('__Exceedance__','count'),
                 '__TotalCount__': ('__Exceedance__','size')
                 })
     # Else the groupby_cols is a list of column names
     else:
         df = df.groupby(groupby_cols).agg(**{
                 exceedances_col: ('__Exceedance__','sum'),
-                '__DeterminedExceedances__': ('__Exceedance__','count'),
+                '__DeterminedCount__': ('__Exceedance__','count'),
                 '__TotalCount__': ('__Exceedance__','size')
                 })
     
     # Determine counts and calculate percentage
-    df[non_exceedances_col] = df['__DeterminedExceedances__'] - df[exceedances_col]
-    df[ignored_col] = df['__TotalCount__']-df['__DeterminedExceedances__']
-    df[percent_exceedances_col] = df[exceedances_col] / df['__DeterminedExceedances__'] * 100
+    df[non_exceedances_col] = df['__DeterminedCount__'] - df[exceedances_col]
+    df[ignored_col] = df['__TotalCount__']-df['__DeterminedCount__']
+    df[percent_exceedances_col] = df[exceedances_col] / df['__DeterminedCount__'] * 100
     
     # Drop working columns
     df = df.drop(df.filter(regex='__').columns, axis=1)
@@ -1366,6 +1370,9 @@ def percent_exceedance(df,
     # Reorder columns
     for col in [percent_exceedances_col,exceedances_col,non_exceedances_col,ignored_col]:
         df[col] = df.pop(col)
+    
+    # Reset index
+    df = df.reset_index()
     
     return df
 
