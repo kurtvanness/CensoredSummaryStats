@@ -94,11 +94,21 @@ A quick example of `censoredsummarystats` usage is given below.
 import pandas as pd
 import censoredsummarystats as css
 
-# Create example results
+# Create DataFrame
 df = pd.DataFrame([['Set1',1.5],['Set1','2'],['Set1','>2.5'],['Set2',2],['Set2','<3'],['Set2',7.0]],columns=['Groups','Results'])
 
+Groups Results
+0   Set1     1.5
+1   Set1       2
+2   Set1    >2.5
+3   Set2       2
+4   Set2      <3
+5   Set2     7.0
+
+# Create CensoredData object from dataframe
 cdf = css.CensoredData(data=df,value_col='Results')
 
+# Calculate minimums, averages, and medians for the data
 minimums = cdf.minimum(groupby_cols=['Groups'])
 
 averages = cdf.mean(groupby_cols=['Groups'])
