@@ -1372,7 +1372,7 @@ class CensoredData:
         df[cdf.result_col] = df[cdf.numeric_col].astype(str) + '%'
         df.loc[df[cdf.ignored_col] > 0, cdf.result_col] = (
             df[cdf.result_col] +
-            ' (' + df[cdf.ignored_col].astype(str) + ' values ignored)'
+            ' (' + df[cdf.ignored_col].astype(str) + ' value(s) ignored)'
             )
         
         # Create a column that indicates the generated statistic 
