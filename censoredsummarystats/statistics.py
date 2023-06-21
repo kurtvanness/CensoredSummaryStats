@@ -377,7 +377,7 @@ class CensoredData:
             # Check that single count_col provided
             if len(count_cols) != 1:
                 raise ValueError('A single column name should be provided as '
-                    'a list when groupby_cols is not provided as an input. '
+                    'a list when groupby_cols is a single list. '
                     f'{count_cols=} was passed.')
             else:
                 # Output size of groups
@@ -1395,8 +1395,10 @@ class CensoredData:
         
         if groupby_cols == None:
             cdf.data = df[output_cols]
-        else:
+        elif (all(isinstance(name, str) for name in groupby_cols)):
             cdf.data = df[groupby_cols + output_cols]
+        else:
+            cdf.data = df[groupby_cols[-1] + output_cols]
         
         # Merge count info
         if count_cols != None:
