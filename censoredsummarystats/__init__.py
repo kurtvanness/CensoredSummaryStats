@@ -1,1 +1,1 @@
-from censoredsummarystats import statistics
+from censoredsummarystats import statistics.censoredsummarystats
