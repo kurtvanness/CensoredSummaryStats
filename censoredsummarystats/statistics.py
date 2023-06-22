@@ -381,9 +381,8 @@ class CensoredData:
                     f'{count_cols=} was passed.')
             else:
                 # Output size of groups
-                df = (df.groupby(groupby_cols)
+                df = (df.groupby(groupby_cols, as_index=False)
                               .size()
-                              .reset_index()
                               .rename(columns={'size': count_cols[0]}))
                 # Merge count info to stat data
                 stat_data = stat_data.merge(df,
