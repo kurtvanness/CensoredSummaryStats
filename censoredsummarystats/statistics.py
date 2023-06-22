@@ -9,6 +9,10 @@ from censoredsummarystats.utils import string_precision, numeric_precision
 class CensoredData:
     data: pd.core.frame.DataFrame
     value_col: str
+    include_negative_interval: bool = False
+    focus_high_potential: bool = True
+    precision_tolerance_to_drop_censor: float = 0.25
+    precision_rounding: bool = True
     stat_col: str = 'Statistic'
     result_col: str = 'Result'
     censor_col: str = 'CensorComponent'
@@ -22,10 +26,6 @@ class CensoredData:
     exceedances_col: str = 'Exceedances'
     non_exceedances_col: str = 'NonExceedances'
     ignored_col: str = 'Ignored'
-    include_negative_interval: bool = False
-    focus_high_potential: bool = True
-    precision_tolerance_to_drop_censor: float = 0.25
-    precision_rounding: bool = True
     
     def __post_init__(self):
         
