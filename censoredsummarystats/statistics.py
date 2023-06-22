@@ -383,8 +383,8 @@ class CensoredData:
                 # Output size of groups
                 df = (df.groupby(groupby_cols)
                               .size()
-                              .rename(columns={'size': count_cols[0]})
-                              .reset_index())
+                              .reset_index()
+                              .rename(columns={'size': count_cols[0]}))
                 # Merge count info to stat data
                 stat_data = stat_data.merge(df,
                                             how='outer',
@@ -1148,8 +1148,10 @@ class CensoredData:
         
         if groupby_cols == None:
             cdf.data = cdf.data[output_cols]
-        else:
+        elif (all(isinstance(name, str) for name in groupby_cols)):
             cdf.data = cdf.data[groupby_cols + output_cols]
+        else:
+            cdf.data = cdf.data[groupby_cols[-1] + output_cols]
         
         # Merge count info
         if count_cols != None:
@@ -1270,8 +1272,10 @@ class CensoredData:
         
         if groupby_cols == None:
             cdf.data = cdf.data[output_cols]
-        else:
+        elif (all(isinstance(name, str) for name in groupby_cols)):
             cdf.data = cdf.data[groupby_cols + output_cols]
+        else:
+            cdf.data = cdf.data[groupby_cols[-1] + output_cols]
         
         # Merge count info
         if count_cols != None:
@@ -1300,6 +1304,7 @@ class CensoredData:
                             threshold_is_exceedance,
                             groupby_cols = None,
                             count_cols = None,
+                            round_to = 2,
                             inplace = False):
         
         # Create a copy of the CensoredData object
@@ -1367,7 +1372,8 @@ class CensoredData:
             )
         df[cdf.ignored_col] = df['__TotalCount__'] - df['__DeterminedCount__']
         df[cdf.numeric_col] = (
-            round(df[cdf.exceedances_col] / df['__DeterminedCount__'] * 100, 4)
+            round(df[cdf.exceedances_col] / df['__DeterminedCount__'] * 100,
+                  round_to)
             )
         df[cdf.result_col] = df[cdf.numeric_col].astype(str) + '%'
         df.loc[df[cdf.ignored_col] > 0, cdf.result_col] = (

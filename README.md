@@ -71,6 +71,7 @@ Many of the methods above have similar input parameters. Those are:
 
 - **groupby_cols**: (default None) These are the columns that should be used to define the groups. Multiple groupings can be provided for some functions. This is useful to even weight data over sites or time periods. For example, a potential input for could be [['Year','Month','Day'], ['Year','Month'], ['Year']]. This would ensure that all days are evenly weighted within the month and that all months are evenly weighted within the year for a stat such as mean or median.
 - **count_cols**: (default None) Supplying a list of strings here will cause methods to return value counts. There should be the same number of strings as there are groupings in groupby_cols. Using the same example for groupby_cols, a user could supply ['Samples', 'Days Sampled', 'Months Sampled'] to get value counts for each grouping.
+- **round_to**: (default 2) The decimal places to round to for percent exceedance method.
 - **inplace**: (default False) If true, the data attribute of the class object will be replaced with the method results.
 
 ## Dependencies
