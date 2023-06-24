@@ -1,9 +1,14 @@
-# Import numpy
+'''
+These functions apply a specific rounding algorithm based on value. Some values
+are rounded based on specified decimal places while others are based on
+significant digits.
+
+'''
 
 import numpy as np
 
-def string_precision(value,
-                     thousands_comma=False):
+def _string_precision(value,
+                      thousands_comma=False):
     '''
     A function that applies a specified rounding method that is value
     dependent. This method is specifically designed to reflect the
@@ -50,7 +55,7 @@ def string_precision(value,
     return string
 
 
-def numeric_precision(value):
+def _numeric_precision(value):
     '''
     A function that returns a float data type from a rounding function instead
     of a string data type.
@@ -69,5 +74,5 @@ def numeric_precision(value):
     '''
     
     # Return the same rounded result as string_precision but as a float
-    return float(string_precision(value))
+    return float(_string_precision(value))
 

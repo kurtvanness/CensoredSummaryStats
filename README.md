@@ -3,7 +3,7 @@ A repository that contains a CensoredData class for analyzing censored data for 
 
 ## Class settings:
 
-When initiating the class, there are two required inputs, 4 default analysis settings that can be changed, and several output column names that can be customized.
+When initiating the class, there are two required inputs, 6 default analysis settings that can be changed, and several output column names that can be customized.
 
 Required inputs:
 
@@ -16,6 +16,8 @@ Default analysis settings:
 - **focus_high_potential**: (default True) This setting controls whether the highest potential or lowest potential is the focus for the result. The functions in this repository consider the full range of potential values of a censored result. This can often lead to a potential range for a statistical result. This setting determines whether to focus on the high or low end of the range. The maximum and minimum statistic ignores this setting and focuses on the high and low end of possible values, respectively.
 - **precision_tolerance_to_drop_censor**: (default 0.25) This setting controls whether a range of possible results is returned as censored or non-censored. For example, if an average is known to be between 2 and 3, then 2.5 would be returned as the result since the whole range is within 20% of 2.5 (20% < 25%). If this parameter was set to 0.15 (15%), then the tolerance would not cover the range and a result of <3 or >2 would be returned depending on the value of focus_high_potential.
 - **precision_rounding**: (default True) This setting controls whether to apply a specific rounding procedure (discussed below).
+- **thousands_comma**: (default False) This setting controls whether to output values over 1000 with commas (1,000).
+- **output_interval**: (default True) This setting controls whether to output the interval was converted to the output result.
 
 Customizable output column names:
 
@@ -52,7 +54,7 @@ Additional table columns can be provided as a list so that the statistical funct
 
 2.	**Minimum**: Calculate the minimum value for a set of values.
 
-3.	**Mean**: Calculate the average value for a set of values.
+3.	**Mean/Average**: Calculate the average value for a set of values.
 
 4.	**Median**: Calculate the median value for a set of values.
 
@@ -62,8 +64,6 @@ Additional table columns can be provided as a list so that the statistical funct
 
 7.	**Percent Exceedances**: Calculate the percentage of values that exceed a specified threshold. The desired threshold should be provided as a number. The default is to not treat results equal to the threshold as exceedances, but this can be changed by setting threshold_is_exceedance to True.
 
-8.	**Results to Components**: Split results into censor component (text) and numeric component (number).
-
 
 ## Method settings:
 
@@ -71,8 +71,8 @@ Many of the methods above have similar input parameters. Those are:
 
 - **groupby_cols**: (default None) These are the columns that should be used to define the groups. Multiple groupings can be provided for some functions. This is useful to even weight data over sites or time periods. For example, a potential input for could be [['Year','Month','Day'], ['Year','Month'], ['Year']]. This would ensure that all days are evenly weighted within the month and that all months are evenly weighted within the year for a stat such as mean or median.
 - **count_cols**: (default None) Supplying a list of strings here will cause methods to return value counts. There should be the same number of strings as there are groupings in groupby_cols. Using the same example for groupby_cols, a user could supply ['Samples', 'Days Sampled', 'Months Sampled'] to get value counts for each grouping.
-- **round_to**: (default 2) The decimal places to round to for percent exceedance method.
-- **inplace**: (default False) If true, the data attribute of the class object will be replaced with the method results.
+- **stat_name**: (default is statistic) The text to use to describe the stat ('Minimum', 'Median', etc.)
+- **filters**: (default None) A dictionary of column names with values to filter for. This allows some simple filtering without recreating CensoredData objects.
 
 ## Dependencies
 
