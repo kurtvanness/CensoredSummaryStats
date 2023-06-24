@@ -7,7 +7,7 @@ settings, and (ii) a DataFrame that contains boundary information.
 '''
 
 import numpy as np
-from precision import _string_precision, _numeric_precision
+from censoredsummarystats.precision import _string_precision, _numeric_precision
 
 def _interval_notation(cdf, stat_data):
     

@@ -3,20 +3,20 @@ import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 
-from validation import _validate_cdf, _validate_groupby_cols
-from stat_interval_aggregation import (
+from censoredsummarystats.validation import _validate_cdf, _validate_groupby_cols
+from censoredsummarystats.stat_interval_aggregation import (
     _maximum_interval,
     _minimum_interval,
     _mean_interval,
     _sum_interval,
     _percentile_interval,
     _median_interval)
-from interval_to_result import _interval_to_result
-from percent_exceedance import (
+from censoredsummarystats.interval_to_result import _interval_to_result
+from censoredsummarystats.percent_exceedance import (
     _determine_exceedances,
     _group_exceedances,
     _percent_exceedances)
-from merge_count_info import _merge_count_info
+from censoredsummarystats.merge_count_info import _merge_count_info
 
 @dataclass
 class CensoredData:
