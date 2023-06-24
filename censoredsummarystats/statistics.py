@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 
-from censoredsummarystats.validation import _validate_cdf, _validate_groupby_cols
+from censoredsummarystats.validation import (
+    _validate_cdf,
+    _validate_groupby_cols)
 from censoredsummarystats.stat_interval_aggregation import (
     _maximum_interval,
     _minimum_interval,
