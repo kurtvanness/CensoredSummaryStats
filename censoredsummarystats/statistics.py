@@ -22,6 +22,38 @@ from censoredsummarystats.merge_count_info import _merge_count_info
 
 @dataclass
 class CensoredData:
+    '''
+    This dataclass validates and pre-processes a dataframe for generating
+    summary stats on censored data.
+
+    Parameters
+    ----------
+    data : DataFrame
+        A pandas dataframe containing censored data
+    value_col : string
+        The column name for the column with censored results
+    include_negative_potential : bool
+        This setting indicates whether negative values are expected or not.
+        The default is false.
+    focus_high_potential : bool
+        This setting indicates whether the highest or lowest potential
+        stat result should be focused. The default is true.
+    precision_tolerance_to_drop_censor : float
+        When the statistic results in a potential range of values, the midpoint
+        is used as the result if all values are within the precision specified
+        by this setting. The default is 0.25 (25%).
+    precision_rounding : bool
+        This setting indicates whether a specified rounding technique should
+        be used. The default is true.
+    thousands_comma : bool
+        This setting indicates whether results larger than 1000 should include
+        thousands commas or not. The default is false.
+    output_interval : bool
+        This setting indicates whether a column should be included in the
+        output with the interval notation used to generate the result.
+        The default is true.
+    '''
+    
     data: pd.core.frame.DataFrame
     value_col: any
     include_negative_interval: bool = False
@@ -44,6 +76,16 @@ class CensoredData:
     non_exceedances_col: str = 'NonExceedances'
     ignored_col: str = 'IgnoredValues'
     warning_col: str = 'Warning'
+    _minimum_col: str = '__tempMinimum__'
+    _maximum_col: str = '__tempMaximum__'
+    _size_col: str = '__tempSize__'
+    _rank_col: str = '__tempRank__'
+    _index_col: str = '__tempIndex__'
+    _proximity_col: str = '__tempProximity__'
+    _contribution_col: str = '__tempContribution__'
+    _midpoint_col: str = '__tempMidpoint__'
+    _determined_col: str = '__tempDeterminedCount__'
+    _totalcount_col: str = '__tempTotalCount__'
     
     def __post_init__(self):
         
@@ -148,7 +190,7 @@ class CensoredData:
     #%% Statistic methods
     
     def _general_stat(self,
-                      stat,
+                      stat_function,
                       groupby_cols = None,
                       count_cols = None,
                       stat_name = None,
@@ -157,7 +199,7 @@ class CensoredData:
         # Validate groupby_cols
         _validate_groupby_cols(self, groupby_cols)
         
-        # Create a copy of the CensoredData object
+        # Create a copy of the data
         df = self.data.copy()
         
         # Apply filters
@@ -167,15 +209,15 @@ class CensoredData:
         
         # If no groupby_cols provided, calculate stat for full dataset
         if groupby_cols == None:
-            df = stat(self, df, None, stat_name)
+            df = stat_function(self, df, None, stat_name)
         else:
             for grouping in groupby_cols:
-                df = stat(self, df, grouping, stat_name)
+                df = stat_function(self, df, grouping, stat_name)
         
         # Set focus of high or low
-        if stat == _maximum_interval:
+        if stat_function == _maximum_interval:
             focus_high_potential = True
-        elif stat == _minimum_interval:
+        elif stat_function == _minimum_interval:
             focus_high_potential = False
         else:
             focus_high_potential = self.focus_high_potential
@@ -194,6 +236,30 @@ class CensoredData:
                 count_cols = None,
                 stat_name = 'Maximum',
                 filters = None):
+        '''
+        Return a dataframe with maximum values for a dataset
+
+        Parameters
+        ----------
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for generating counts.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Maximum'.
+        filters : dictionary of keywords with lists
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of maximums for the specified groups.
+
+        '''
         
         return self._general_stat(_maximum_interval,
                                   groupby_cols,
@@ -206,6 +272,30 @@ class CensoredData:
                 count_cols = None,
                 stat_name = 'Minimum',
                 filters = None):
+        '''
+        Return a dataframe with minimum values for a dataset
+
+        Parameters
+        ----------
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for generating counts.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Minimum'.
+        filters : dictionary of keywords with lists
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of minimums for the specified groups.
+
+        '''
         
         return self._general_stat(_minimum_interval,
                                   groupby_cols,
@@ -218,6 +308,31 @@ class CensoredData:
              count_cols = None,
              stat_name = 'Mean',
              filters = None):
+        '''
+        Return a dataframe with mean values for a dataset
+
+        Parameters
+        ----------
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for ensuring even
+            weighting within subgroups or for generating counts of subgroups.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Mean'.
+        filters : dictionary of keywords with list of specified values
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of means for the specified groups.
+
+        '''
         
         return self._general_stat(_mean_interval,
                                   groupby_cols,
@@ -230,6 +345,31 @@ class CensoredData:
                 count_cols = None,
                 stat_name = 'Average',
                 filters = None):
+        '''
+        Return a dataframe with average values for a dataset
+
+        Parameters
+        ----------
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for ensuring even
+            weighting within subgroups or for generating counts of subgroups.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Average'.
+        filters : dictionary of keywords with list of specified values
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of averages for the specified groups.
+
+        '''
         
         return self._general_stat(_mean_interval,
                                   groupby_cols,
@@ -242,6 +382,30 @@ class CensoredData:
             count_cols = None,
             stat_name = 'Sum',
             filters = None):
+        '''
+        Return a dataframe with sums for a dataset
+
+        Parameters
+        ----------
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for generating counts 
+            of subgroups. The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Sum'.
+        filters : dictionary of keywords with list of specified values
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of sums for the specified groups.
+
+        '''
         
         return self._general_stat(_sum_interval,
                                   groupby_cols,
@@ -254,6 +418,32 @@ class CensoredData:
                count_cols = None,
                stat_name = 'Median',
                filters = None):
+        
+        '''
+        Return a dataframe with median values for a dataset
+
+        Parameters
+        ----------
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for ensuring even
+            weighting within subgroups or for generating counts of subgroups.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Median'.
+        filters : dictionary of keywords with list of specified values
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of medians for the specified groups.
+
+        '''
         
         return self._general_stat(_median_interval,
                                   groupby_cols,
@@ -268,8 +458,44 @@ class CensoredData:
                    stat_name = 'Percentile',
                    method = 'hazen',
                    filters = None):
+        '''
+        Return a dataframe with percentile values for a dataset
+
+        Parameters
+        ----------
+        percentile : float
+            The percentile that should be determined. The supplied value
+            needs to be between 0 and 100.
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for ensuring even
+            weighting within subgroups or for generating counts of subgroups.
+            If subgroups are provided (multiple tiers of groupings) then the
+            median values of the subgroups are determined before the percentile
+            is determined for the final group.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat. The default is 'Percentile'.
+        method : str
+            The percentile method to use. Options include: 'weibull', 'tukey',
+            'blom', 'hazen', 'excel'. These options come from the Ministry for
+            the environment Hazen percentile calculator spreadsheet.
+            The default is hazen.
+        filters : dictionary of keywords with list of specified values
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of percentiles for the specified groups.
+
+        '''
         
-        # Create a copy of the CensoredData object
+        # Create a copy of the data
         df = self.data.copy()
         
         # Apply filters
@@ -314,14 +540,49 @@ class CensoredData:
     
     def percent_exceedance(self,
                            threshold,
-                           threshold_is_exceedance,
+                           threshold_is_exceedance = False,
                            groupby_cols = None,
                            count_cols = None,
                            stat_name = 'Percent Exceedance',
                            round_to = 2,
                            filters = None):
+        '''
+        Return a DataFrame with the percentage of results that exceed a
+        specified threshold.
+
+        Parameters
+        ----------
+        threshold : float or int
+            The threshold value of interest.
+        threshold_is_exceedance : bool
+            Set whether the threshold value itself is considered an exceedance.
+            The default is false.
+        groupby_cols : list of list of strings
+            These are the columns that should be used to define the groups. The
+            ability to provide multiple lists is useful for ensuring even
+            weighting within subgroups or for generating counts of subgroups.
+            The default is None.
+        count_cols : list of strings
+            The column names to use for counts given to the above groups.
+            The default is None.
+        stat_name : str
+            The name to use to describe the stat.
+            The default is 'Percent Exceedance'.
+        round_to : int
+            The number of decimal places to round the percentage to.
+            The default is 2.
+        filters : dictionary of keywords with list of specified values
+            This parameter allows users to determine the stat for only
+            specified values within columns. The default is None.
+
+        Returns
+        -------
+        DataFrame
+            A Dataframe of percentage of exceedances for the specified groups.
+
+        '''
         
-        # Create a copy of the CensoredData object
+        # Create a copy of the data
         df = self.data.copy()
         
         # Apply filters

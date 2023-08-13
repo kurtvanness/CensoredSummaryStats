@@ -19,16 +19,10 @@ def _interval_notation(cdf, stat_data):
         np.where(df[cdf.left_boundary_col] == 'Open','(','['))
     
     # Incorporate left and right bounds
-    if cdf.precision_rounding:
-        df[cdf.interval_col] += (
-            df[cdf.left_bound_col].apply(_string_precision) + ', ' + 
-            df[cdf.right_bound_col].apply(_string_precision)
-            )
-    else:
-        df[cdf.interval_col] += (
-            df[cdf.left_bound_col].astype(str) + ', ' + 
-            df[cdf.right_bound_col].astype(str)
-            )
+    df[cdf.interval_col] += (
+        df[cdf.left_bound_col].astype(str) + ', ' + 
+        df[cdf.right_bound_col].astype(str)
+        )
     
     # Determine the right boundary symbol
     df[cdf.interval_col] += (
@@ -42,7 +36,7 @@ def _components_from_interval(cdf, stat_data, focus_high_potential):
     df = stat_data.copy()
     
     # Determine the midpoint for the interval if finite interval
-    df['__MidPoint__'] = (
+    df[cdf._midpoint_col] = (
         np.where((df[cdf.left_bound_col] > -np.inf) & 
                  (df[cdf.right_bound_col] < np.inf),
             0.5 * (df[cdf.left_bound_col] + df[cdf.right_bound_col]),
@@ -56,8 +50,8 @@ def _components_from_interval(cdf, stat_data, focus_high_potential):
         (df[cdf.left_bound_col] == df[cdf.right_bound_col]) |
         # If the bounds are finite and the interval is within the 
         # precision tolerance, then the result is uncensored
-        ((df[cdf.right_bound_col] - df['__MidPoint__']) <= 
-            df['__MidPoint__'] * cdf.precision_tolerance_to_drop_censor)
+        ((df[cdf.right_bound_col] - df[cdf._midpoint_col]) <= 
+            df[cdf._midpoint_col] * cdf.precision_tolerance_to_drop_censor)
         ]
     
     censor_results = [
@@ -65,7 +59,7 @@ def _components_from_interval(cdf, stat_data, focus_high_potential):
         ]
     
     numeric_results =[
-        df['__MidPoint__']
+        df[cdf._midpoint_col]
         ]
     
     # If focused on the highest potential result
@@ -135,11 +129,11 @@ def _components_from_interval(cdf, stat_data, focus_high_potential):
             # Otherwise, the result is right censored
             # where closed boundary indicates potential equality
             (
-                (df[cdf.left_bound_col] > lower_bound) &
+                (df[cdf.left_bound_col] > -np.inf) &
                 (df[cdf.left_boundary_col] == 'Open')
             ),
             (
-                (df[cdf.left_bound_col] > lower_bound) &
+                (df[cdf.left_bound_col] > -np.inf) &
                 (df[cdf.left_boundary_col] == 'Closed')
             )
             ]
@@ -166,7 +160,7 @@ def _components_from_interval(cdf, stat_data, focus_high_potential):
         df[cdf.numeric_col] = df[cdf.numeric_col].apply(_numeric_precision)
     
     # Drop working columns
-    df = df.drop(df.filter(regex='__').columns, axis=1)
+    df = df.drop([cdf._midpoint_col], axis=1)
     
     return df
     

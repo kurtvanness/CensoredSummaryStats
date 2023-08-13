@@ -160,10 +160,10 @@ def _mean_or_sum_interval(cdf, data, groupby_cols, stat_name, stat='mean'):
         df.groupby(groupby_cols + [cdf.stat_col])
             .agg(**{
                 cdf.left_boundary_col: (cdf.left_boundary_col, 'max'),
-                '__Minimum__': (cdf.left_bound_col, 'min'),
+                cdf._minimum_col: (cdf.left_bound_col, 'min'),
                 cdf.left_bound_col: (cdf.left_bound_col, stat),
                 cdf.right_bound_col: (cdf.right_bound_col, stat),
-                '__Maximum__': (cdf.right_bound_col, 'max'),
+                cdf._maximum_col: (cdf.right_bound_col, 'max'),
                 cdf.right_boundary_col: (cdf.right_boundary_col, 'max')
                 })
         )
@@ -177,20 +177,20 @@ def _mean_or_sum_interval(cdf, data, groupby_cols, stat_name, stat='mean'):
     # np.inf values. Convert nan to inf only if infinite values are
     # included in the mean/sum
     df[cdf.left_bound_col] = (
-        np.where(df['__Minimum__'] == -np.inf,
+        np.where(df[cdf._minimum_col] == -np.inf,
                  -np.inf,
                  df[cdf.left_bound_col]
                  )
         )
     df[cdf.right_bound_col] = (
-        np.where(df['__Maximum__'] == np.inf,
+        np.where(df[cdf._maximum_col] == np.inf,
                  np.inf,
                  df[cdf.right_bound_col]
                  )
         )
     
     # Drop working columns
-    df = df.drop(df.filter(regex='__').columns, axis=1)
+    df = df.drop([cdf._minimum_col, cdf._maximum_col], axis=1)
     
     # Reset index
     df = df.reset_index()
@@ -239,24 +239,24 @@ def _percentile_interval(cdf,
     percentile = percentile/100
     
     # Create column for the size of each group
-    df['__Size__'] = (df.groupby(groupby_cols + [cdf.stat_col])
+    df[cdf._size_col] = (df.groupby(groupby_cols + [cdf.stat_col])
                         .transform('size'))
     
     # Determine the rank in each group for the percentile
     # Use rounding at 8 decimals to prevent artificial decimals
-    df['__Rank__'] = round(C + percentile*(df['__Size__'] + 1 - 2*C), 8)
+    df[cdf._rank_col] = round(C + percentile*(df[cdf._size_col] + 1 - 2*C), 8)
     
     # Create warning column to flag if the percentile rank is outside
     # the range of possible values. If rank is less than 1, the minimum will
     # be returned for the percentile; if the rank is greater than the size
     # of the group, the maximum will be returned.
     df[cdf.warning_col] = ''
-    max_condition = (df['__Rank__'] > df['__Size__'])
-    min_condition = (df['__Rank__'] < 1)
+    max_condition = (df[cdf._rank_col] > df[cdf._size_col])
+    min_condition = (df[cdf._rank_col] < 1)
     df.loc[max_condition, cdf.warning_col] = '(low count, used max)'
     df.loc[min_condition, cdf.warning_col] = '(low count, used min)'
-    df.loc[max_condition, '__Rank__'] = df['__Size__']
-    df.loc[min_condition, '__Rank__'] = 1
+    df.loc[max_condition, cdf._rank_col] = df[cdf._size_col]
+    df.loc[min_condition, cdf._rank_col] = 1
     
     # For the left bound, change notation of Closed and Open boundaries to 0
     # and 1, respectively. Use 0 for Closed to ensure that Closed boundaries
@@ -274,7 +274,7 @@ def _percentile_interval(cdf,
     # Reduce working dataframes to relevant columns
     left = (
         df.copy()[groupby_cols + [cdf.stat_col] +
-                  ['__Size__', '__Rank__', cdf.warning_col] +
+                  [cdf._size_col, cdf._rank_col, cdf.warning_col] +
                   [cdf.left_boundary_col, cdf.left_bound_col]]
             .sort_values(
                 by = [cdf.left_bound_col, cdf.left_boundary_col]
@@ -282,7 +282,7 @@ def _percentile_interval(cdf,
         )
     right = (
         df.copy()[groupby_cols + [cdf.stat_col] +
-                  ['__Size__', '__Rank__', cdf.warning_col] +
+                  [cdf._size_col, cdf._rank_col, cdf.warning_col] +
                   [cdf.right_boundary_col, cdf.right_bound_col]]
             .sort_values(
                 by = [cdf.right_bound_col, cdf.right_boundary_col]
@@ -290,9 +290,9 @@ def _percentile_interval(cdf,
         )
     
     # Add index for each group
-    left['__Index__'] = (left.groupby(groupby_cols + [cdf.stat_col])
+    left[cdf._index_col] = (left.groupby(groupby_cols + [cdf.stat_col])
                              .cumcount() + 1)
-    right['__Index__'] = (right.groupby(groupby_cols + [cdf.stat_col])
+    right[cdf._index_col] = (right.groupby(groupby_cols + [cdf.stat_col])
                                .cumcount() + 1)
     
     def find_values_within_one_of_rank(df):
@@ -300,33 +300,33 @@ def _percentile_interval(cdf,
         # Determine proximity of each result to percentile rank using the index
         
         # Set default as 0
-        df['__Proximity__'] = 0
+        df[cdf._proximity_col] = 0
         
         condition_set = [
             # If the percentile rank is a whole number,
             # then use that index result
-            (df['__Rank__'] == df['__Index__']),
+            (df[cdf._rank_col] == df[cdf._index_col]),
             # If the percentile rank is less than 1 above the index value,
             # then assign the appropriate contribution to that index value
-            ((df['__Rank__'] - df['__Index__'])
+            ((df[cdf._rank_col] - df[cdf._index_col])
                                          .between(0,1,inclusive='neither')),
             # If the percentile rank is less than 1 below the index value,
             # then assign the appropriate contribution to that index value
-            ((df['__Index__'] - df['__Rank__'])
+            ((df[cdf._index_col] - df[cdf._rank_col])
                                          .between(0,1,inclusive='neither'))
             ]
         
         proximities = [
             1,
-            1 - (df['__Rank__'] - df['__Index__']),
-            1 - (df['__Index__'] - df['__Rank__'])
+            1 - (df[cdf._rank_col] - df[cdf._index_col]),
+            1 - (df[cdf._index_col] - df[cdf._rank_col])
             ]
         
         # Set proximity of each result to rank
-        df['__Proximity__'] = np.select(condition_set, proximities, np.nan)
+        df[cdf._proximity_col] = np.select(condition_set, proximities, np.nan)
         
         # Drop non-contributing rows
-        df = df[df['__Proximity__'] > 0]
+        df = df[df[cdf._proximity_col] > 0]
         
         return df
     
@@ -334,10 +334,10 @@ def _percentile_interval(cdf,
     right = find_values_within_one_of_rank(right)
     
     # Calculate contribution for using proximity to rank
-    left['__Contribution__'] = (
-        left['__Proximity__'] * left[cdf.left_bound_col])
-    right['__Contribution__'] = (
-        right['__Proximity__'] * right[cdf.right_bound_col])
+    left[cdf._contribution_col] = (
+        left[cdf._proximity_col] * left[cdf.left_bound_col])
+    right[cdf._contribution_col] = (
+        right[cdf._proximity_col] * right[cdf.right_bound_col])
     
     # Determine bound and boundary using the sum of the contributions
     # and an open boundary if any of the contributing values is open
@@ -346,15 +346,15 @@ def _percentile_interval(cdf,
         left.groupby(groupby_cols + [cdf.stat_col, cdf.warning_col])
             .agg(**{
                 cdf.left_boundary_col: (cdf.left_boundary_col, 'max'),
-                cdf.left_bound_col: ('__Contribution__', 'sum'),
-                '__Minimum__': ('__Contribution__', 'min')
+                cdf.left_bound_col: (cdf._contribution_col, 'sum'),
+                cdf._minimum_col: (cdf._contribution_col, 'min')
                 }))
     right = (
         right.groupby(groupby_cols + [cdf.stat_col, cdf.warning_col])
             .agg(**{
-                cdf.right_bound_col: ('__Contribution__', 'sum'),
+                cdf.right_bound_col: (cdf._contribution_col, 'sum'),
                 cdf.right_boundary_col: (cdf.right_boundary_col, 'min'),
-                '__Maximum__': ('__Contribution__', 'max')
+                cdf._maximum_col: (cdf._contribution_col, 'max')
                 }))
     
     # Replace the numeric value for the boundary
@@ -365,10 +365,10 @@ def _percentile_interval(cdf,
     
     # Replace nan bounds with infinite bound
     left[cdf.left_bound_col] = (
-        np.where(left['__Minimum__'] == -np.inf, -np.inf,
+        np.where(left[cdf._minimum_col] == -np.inf, -np.inf,
                  left[cdf.left_bound_col]))
     right[cdf.right_bound_col] = (
-        np.where(right['__Maximum__'] == np.inf, np.inf,
+        np.where(right[cdf._maximum_col] == np.inf, np.inf,
                  right[cdf.right_bound_col]))
     
     
@@ -381,7 +381,9 @@ def _percentile_interval(cdf,
                     )
     
     # Drop working columns
-    df = df.drop(df.filter(regex='__').columns, axis=1)
+    df = df.drop([cdf._minimum_col, cdf._maximum_col,
+                  cdf._size_col, cdf._rank_col, cdf._index_col,
+                  cdf._proximity_col, cdf._contribution_col], axis=1)
     
     # Reset index
     df = df.reset_index()

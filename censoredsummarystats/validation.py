@@ -28,7 +28,9 @@ def _validate_cdf(cdf):
             f'{cdf.data.columns.to_list()} which does not include '
             f'{repr(cdf.value_col)}.')
     
-    #%% Check the four stat settings
+    #%% Check the stat settings
+    
+    # Check the true/false settings
     
     boolean_settings = ['include_negative_interval',
                         'focus_high_potential',
@@ -43,6 +45,7 @@ def _validate_cdf(cdf):
                 'True or False. Instead, the value supplied was '
                 f'{repr(setting_mode)}.')
     
+    # Check precision_tolerance_to_drop_censor is numeric
     # True or False are considered integer types so check for boolean too
     if ((isinstance(cdf.precision_tolerance_to_drop_censor, bool)) |
         (not isinstance(cdf.precision_tolerance_to_drop_censor,
@@ -50,6 +53,13 @@ def _validate_cdf(cdf):
         raise ValueError(f'The value supplied to '
             'precision_tolerance_to_drop_censor must be numeric. Instead, '
             'the value supplied was '
+            f'{repr(cdf.precision_tolerance_to_drop_censor)}.')
+    
+    # Check precision_tolerance_to_drop_censor is non-negative
+    if cdf.precision_tolerance_to_drop_censor < 0:
+        raise ValueError(f'The value supplied to '
+            'precision_tolerance_to_drop_censor must be non-negative. '
+            'The value supplied was '
             f'{repr(cdf.precision_tolerance_to_drop_censor)}.')
     
     #%% Check column names for conflicts
@@ -82,13 +92,6 @@ def _validate_cdf(cdf):
             raise ValueError('Text values are required for column names. '
                 f'The column name {col_name} should be changed to a text '
                 f'value for {col}.')
-    
-    # Check that the data has no columns starting with double underscore
-    dunder_cols = [col for col in cdf.data if col.startswith('__')]
-    if len(dunder_cols) != 0:
-        raise ValueError('Columns starting with "__" are used within '
-            'the stat methods. Rename the following columns: '
-            f'{dunder_cols}')
     
     #%% Check that there are no nan values or empty strings
     if ((cdf.data[cdf.value_col].isnull().any()) |
@@ -130,23 +133,4 @@ def _validate_groupby_cols(cdf, groupby_cols):
         if cdf.data[groupby_cols[0]].isnull().values.any():
             raise ValueError('Null values found in one of the columns used '
                 'for grouping.')
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
             

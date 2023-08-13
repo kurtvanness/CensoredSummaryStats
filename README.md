@@ -30,6 +30,7 @@ Customizable output column names:
 - **exceedances_col**: (default 'Exceedances') This column contains the number of exceedances resulting from the percent_exceedances method.
 - **non_exceedances_col**: (default 'NonExceedances') This column contains the number of non-exceedances resulting from the percent_exceedances method.
 - **ignored_col**: (default 'Ignored') This column contains the number of values that couldn't be assessed for the percent_exceedances method. For example, a value of '<2' cannot be determined as being above or below 1. Users should manually adjust values to be above or below the supplied threshold if they need to be considered.
+- **warning_col**: (default 'Warning') This column is only generated for percentiles under certain situations.
 
 ## Precision Rounding approach:
 
@@ -74,6 +75,10 @@ Many of the methods above have similar input parameters. Those are:
 - **stat_name**: (default is statistic) The text to use to describe the stat ('Minimum', 'Median', etc.)
 - **filters**: (default None) A dictionary of column names with values to filter for. This allows some simple filtering without recreating CensoredData objects.
 
+The percentile function has the following additional input parameters:
+- **percentile**: The percentile that should be determined. The supplied value needs to be between 0 and 100.
+- **method**: (default hazen) The percentile method to use. Options include: 'weibull', 'tukey', 'blom', 'hazen', 'excel'.
+
 ## Dependencies
 
 For the installation of `censoredsummarystats`, the following packages are required:
@@ -89,48 +94,82 @@ pip install censoredsummarystats
 
 ## Usage
 
-A quick example of `censoredsummarystats` usage is given below.
+An example of `censoredsummarystats` usage is given below.
 
 ```python
 import pandas as pd
 import censoredsummarystats as css
 
 # Create DataFrame
-df = pd.DataFrame([['Set1',1.5],['Set1','2'],['Set1','>2.5'],['Set2',2],['Set2','<3'],['Set2',7.0]],columns=['Groups','Results'])
+df = pd.DataFrame([
+    ['Site1','E. coli', 2021, '<1'],
+    ['Site1','E. coli', 2021, '<1'],
+    ['Site1','E. coli', 2022, 455],
+    ['Site1','E. coli', 2022, '>2420'],
+    ['Site1','E. coli', 2022, 257],
+    ['Site2','E. coli', 2021, 5],
+    ['Site2','E. coli', 2021, '>2420'],
+    ['Site2','E. coli', 2022, '<10'],
+    ['Site2','E. coli', 2022, 17000],
+    ['Site2','Temperature', 2022, 12.4]
+    ],
+    columns=['SiteID','Parameter','Year','Result'])
 
-Groups Results
-0   Set1     1.5
-1   Set1       2
-2   Set1    >2.5
-3   Set2       2
-4   Set2      <3
-5   Set2     7.0
+  SiteID    Parameter  Year Result
+0  Site1      E. coli  2021     <1
+1  Site1      E. coli  2021     <1
+2  Site1      E. coli  2022    455
+3  Site1      E. coli  2022  >2420
+4  Site1      E. coli  2022    257
+5  Site2      E. coli  2021      5
+6  Site2      E. coli  2021  >2420
+7  Site2      E. coli  2022    <10
+8  Site2      E. coli  2022  17000
+9  Site2  Temperature  2022   12.4
 
 # Create CensoredData object from dataframe
-cdf = css.CensoredData(data=df,value_col='Results')
+cdf = css.CensoredData(data=df,value_col='Result')
 
-# Calculate minimums, averages, and medians for the data
-minimums = cdf.minimum(groupby_cols=['Groups'])
+# Calculate annual maximums
+annual_maximums = cdf.maximum(groupby_cols=[['SiteID','Parameter','Year']],
+                                count_cols=['Samples'],
+                                stat_name='Annual Maximum')
 
-averages = cdf.mean(groupby_cols=['Groups'])
+# Calculate the maximum concentrations of E. coli measured at each site
+site_ecoli_maximums = cdf.maximum(groupby_cols=[['SiteID','Year'],['SiteID']],
+                                count_cols=['Samples','YearsSampled'],
+                                stat_name='Site Maximum',
+                                filters = {'Parameter':['E. coli']})
 
-medians = cdf.median(groupby_cols=['Groups'])
+# Calculate the annual averages
+annual_averages = cdf.average(groupby_cols=[['SiteID','Parameter','Year']],
+                                count_cols=['Samples'],
+                                stat_name='Annual Average')
+
 ```
-Output are like this:
+Outputs are like this:
 ```python
-print(minimums)
-  Groups Statistic Result CensorComponent  NumericComponent      Interval
-0   Set1   Minimum   1.50                               1.5  [1.50, 1.50]
-1   Set2   Minimum  ≤2.00               ≤               2.0     [0, 2.00]
+print(annual_maximums)
+	SiteID	Parameter	Year	Statistic	    Result	Interval	    Samples
+0	Site1	E. coli	    2021	Annual Maximum	<1	    [0, 1)	        2
+1	Site1	E. coli	    2022	Annual Maximum	>2420	(2420, inf)	    3
+2	Site2	E. coli	    2021	Annual Maximum	>2420	(2420, inf)	    2
+3	Site2	E. coli	    2022	Annual Maximum	17000	[17000, 17000]	2
+4	Site2	Temperature	2022	Annual Maximum	12.4    [12.4, 12.4]	1
 
-print(averages)
-  Groups Statistic Result CensorComponent  NumericComponent      Interval
-0   Set1      Mean  >2.00               >               2.0   (2.00, inf)
-1   Set2      Mean   3.50                               3.5  [3.00, 4.00)
 
-print(medians)
-  Groups Statistic Result CensorComponent  NumericComponent      Interval
-0   Set1    Median   2.00                               2.0  [2.00, 2.00]
-1   Set2    Median   2.50                               2.5  [2.00, 3.00)
+print(site_ecoli_maximums)
+	SiteID	Statistic	    Result	Interval	    Samples	YearsSampled
+0	Site1	Site Maximum	>2420	(2420, inf)	    5	    2
+1	Site2	Site Maximum	≥17000	[17000, inf)	4	    2
+
+
+print(annual_averages)
+	SiteID	Parameter	Year	Statistic	    Result	Interval	    Samples
+0	Site1	E. coli	    2021	Annual Average	<1	    [0, 1)	        2
+1	Site1	E. coli	    2022	Annual Average	>1040	(1044, inf)	    3
+2	Site2	E. coli	    2021	Annual Average	>1210	(1212.5, inf)	2
+3	Site2	E. coli	    2022	Annual Average	8500	[8500, 8505)	2
+4	Site2	Temperature	2022	Annual Average	12.4	[12.4, 12.4]	1
 ```
 

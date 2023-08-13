@@ -28,11 +28,14 @@ def _string_precision(value,
 
     '''
     
+    # Calculate the absolute value
+    abs_value = abs(value)
+    
     # Check for infinite values
-    if abs(value) == np.inf:
+    if abs_value == np.inf:
         string = str(value)
     # Values above 100 or are rounded to 100 should be rounded to 3 significant digits
-    elif round(abs(value),1) >= 100:
+    elif round(abs_value,1) >= 100:
         string = f'{value:.3g}'
         # Include thousands separator, depending on input
         if thousands_comma:
@@ -40,13 +43,13 @@ def _string_precision(value,
         else:
             string = str(int(float(string)))
     # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
-    elif round(abs(value),2) >= 10:
+    elif round(abs_value,2) >= 10:
         string = f'{value:.1f}'
     # Values above 0.2 or are rounded to 0.2 should be rounded to 2 decimal places
-    elif round(abs(value),3) >= 0.2:
+    elif round(abs_value,3) >= 0.2:
         string = f'{value:.2f}'
     # Values above 0.1 or are rounded to 0.1 should be rounded to 3 decimal places
-    elif round(abs(value),3) >= 0.1:
+    elif round(abs_value,3) >= 0.1:
         string = f'{value:.3f}'
     # Values below 0.1 should be rounded to 2 significant digits
     else:

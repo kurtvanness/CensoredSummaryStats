@@ -95,20 +95,20 @@ def _percent_exceedances(cdf,
     df = (df.groupby(groupby_cols)
           .agg(**{
               cdf.exceedances_col: (cdf.exceedances_col,'sum'),
-              '__DeterminedCount__': (cdf.exceedances_col,'count'),
-              '__TotalCount__': (cdf.exceedances_col,'size')
+              cdf._determined_col: (cdf.exceedances_col,'count'),
+              cdf._totalcount_col: (cdf.exceedances_col,'size')
             })
         )
     
     # Determine counts of non-exceedances and ignored/dropped values
     df[cdf.non_exceedances_col] = (
-        df['__DeterminedCount__'] - df[cdf.exceedances_col]
+        df[cdf._determined_col] - df[cdf.exceedances_col]
         )
-    df[cdf.ignored_col] = df['__TotalCount__'] - df['__DeterminedCount__']
+    df[cdf.ignored_col] = df[cdf._totalcount_col] - df[cdf._determined_col]
     
     # Calculate percentage and round
     df[cdf.numeric_col] = (
-        round(df[cdf.exceedances_col] / df['__DeterminedCount__'] * 100,
+        round(df[cdf.exceedances_col] / df[cdf._determined_col] * 100,
               round_to)
         )
     # Create result and included count of dropped values
@@ -127,7 +127,7 @@ def _percent_exceedances(cdf,
     df = df.reset_index()
     
     # Drop working columns
-    df = df.drop(df.filter(regex='__').columns, axis=1)
+    df = df.drop([cdf._determined_col, cdf._totalcount_col], axis=1)
     
     return df
 
