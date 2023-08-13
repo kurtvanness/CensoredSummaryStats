@@ -150,26 +150,26 @@ annual_averages = cdf.average(groupby_cols=[['SiteID','Parameter','Year']],
 Outputs are like this:
 ```python
 print(annual_maximums)
-	SiteID	Parameter	Year	Statistic	    Result	Interval	    Samples
-0	Site1	E. coli	    2021	Annual Maximum	<1	    [0, 1)	        2
-1	Site1	E. coli	    2022	Annual Maximum	>2420	(2420, inf)	    3
-2	Site2	E. coli	    2021	Annual Maximum	>2420	(2420, inf)	    2
-3	Site2	E. coli	    2022	Annual Maximum	17000	[17000, 17000]	2
+	SiteID	Parameter	Year	Statistic	Result	Interval	Samples
+0	Site1	E. coli	        2021	Annual Maximum	<1	[0, 1)	        2
+1	Site1	E. coli	        2022	Annual Maximum	>2420	(2420, inf)	3
+2	Site2	E. coli	        2021	Annual Maximum	>2420	(2420, inf)	2
+3	Site2	E. coli	        2022	Annual Maximum	17000	[17000, 17000]	2
 4	Site2	Temperature	2022	Annual Maximum	12.4    [12.4, 12.4]	1
 
 
 print(site_ecoli_maximums)
-	SiteID	Statistic	    Result	Interval	    Samples	YearsSampled
-0	Site1	Site Maximum	>2420	(2420, inf)	    5	    2
+	SiteID	Statistic	Result	Interval	Samples	YearsSampled
+0	Site1	Site Maximum	>2420	(2420, inf)	5	    2
 1	Site2	Site Maximum	≥17000	[17000, inf)	4	    2
 
 
 print(annual_averages)
-	SiteID	Parameter	Year	Statistic	    Result	Interval	    Samples
-0	Site1	E. coli	    2021	Annual Average	<1	    [0, 1)	        2
-1	Site1	E. coli	    2022	Annual Average	>1040	(1044, inf)	    3
-2	Site2	E. coli	    2021	Annual Average	>1210	(1212.5, inf)	2
-3	Site2	E. coli	    2022	Annual Average	8500	[8500, 8505)	2
+	SiteID	Parameter	Year	Statistic	Result	Interval	Samples
+0	Site1	E. coli	        2021	Annual Average	<1	[0, 1)	        2
+1	Site1	E. coli	        2022	Annual Average	>1040	(1044, inf)	3
+2	Site2	E. coli	        2021	Annual Average	>1210	(1212.5, inf)	2
+3	Site2	E. coli	        2022	Annual Average	8500	[8500, 8505)	2
 4	Site2	Temperature	2022	Annual Average	12.4	[12.4, 12.4]	1
 ```
 
