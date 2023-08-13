@@ -160,8 +160,8 @@ print(annual_maximums)
 
 print(site_ecoli_maximums)
 	SiteID	Statistic	Result	Interval	Samples	YearsSampled
-0	Site1	Site Maximum	>2420	(2420, inf)	5	    2
-1	Site2	Site Maximum	≥17000	[17000, inf)	4	    2
+0	Site1	Site Maximum	>2420	(2420, inf)	5	2
+1	Site2	Site Maximum	≥17000	[17000, inf)	4	2
 
 
 print(annual_averages)
