@@ -381,9 +381,7 @@ def _percentile_interval(cdf,
                     )
     
     # Drop working columns
-    df = df.drop([cdf._minimum_col, cdf._maximum_col,
-                  cdf._size_col, cdf._rank_col, cdf._index_col,
-                  cdf._proximity_col, cdf._contribution_col], axis=1)
+    df = df.drop([cdf._minimum_col, cdf._maximum_col], axis=1)
     
     # Reset index
     df = df.reset_index()
