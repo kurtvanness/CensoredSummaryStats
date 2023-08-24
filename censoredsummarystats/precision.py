@@ -6,6 +6,7 @@ significant digits.
 '''
 
 import numpy as np
+from decimal import Decimal, ROUND_HALF_UP
 
 def _string_precision(value,
                       thousands_comma=False):
@@ -28,33 +29,38 @@ def _string_precision(value,
 
     '''
     
+    # Create string notation rounded to 6 significant digits
+    string = f'{value:.6g}'
+    
     # Calculate the absolute value
     abs_value = abs(value)
     
+    # Calculate precision parameter based on value
+    if round(abs_value,1) >= 100:
+        precision = Decimal(f'{value:.3g}') # 3 sig figs
+    elif round(abs_value,2) >= 10:
+        precision = Decimal('0.1') # 1 decimal place
+    elif round(abs_value,3) >= 0.2:
+        precision = Decimal('0.01') # 2 decimal place
+    elif round(abs_value,3) >= 0.1:
+        precision = Decimal('0.001') # 3 decimal place
+    else:
+        precision = Decimal(f'{value:#.2g}') # 2 sig figs
+    
     # Check for infinite values
     if abs_value == np.inf:
-        string = str(value)
-    # Values above 100 or are rounded to 100 should be rounded to 3 significant digits
-    elif round(abs_value,1) >= 100:
-        string = f'{value:.3g}'
-        # Include thousands separator, depending on input
-        if thousands_comma:
-            string = f'{int(float(string)):,}'
-        else:
-            string = str(int(float(string)))
-    # Values above 10 or are rounded to 10 should be rounded to 1 decimal place
-    elif round(abs_value,2) >= 10:
-        string = f'{value:.1f}'
-    # Values above 0.2 or are rounded to 0.2 should be rounded to 2 decimal places
-    elif round(abs_value,3) >= 0.2:
-        string = f'{value:.2f}'
-    # Values above 0.1 or are rounded to 0.1 should be rounded to 3 decimal places
-    elif round(abs_value,3) >= 0.1:
-        string = f'{value:.3f}'
-    # Values below 0.1 should be rounded to 2 significant digits
+        pass
     else:
-        string = f'{value:.2g}'
-
+        # Apply appropriate precision
+        string = str(Decimal(string).quantize(precision,
+                                              rounding=ROUND_HALF_UP))
+        # Values over 100 are returned without decimal places (as integers)
+        if round(abs_value,1) >= 100:
+            if thousands_comma:
+                string = f'{int(float(string)):,}'
+            else:
+                string = f'{int(float(string))}'
+        
     return string
 
 

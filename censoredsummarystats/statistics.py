@@ -1,7 +1,7 @@
 
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from censoredsummarystats.validation import (
     _validate_cdf,
@@ -76,16 +76,16 @@ class CensoredData:
     non_exceedances_col: str = 'NonExceedances'
     ignored_col: str = 'IgnoredValues'
     warning_col: str = 'Warning'
-    _minimum_col: str = '__tempMinimum__'
-    _maximum_col: str = '__tempMaximum__'
-    _size_col: str = '__tempSize__'
-    _rank_col: str = '__tempRank__'
-    _index_col: str = '__tempIndex__'
-    _proximity_col: str = '__tempProximity__'
-    _contribution_col: str = '__tempContribution__'
-    _midpoint_col: str = '__tempMidpoint__'
-    _determined_col: str = '__tempDeterminedCount__'
-    _totalcount_col: str = '__tempTotalCount__'
+    _minimum_col: str = field(default='__tempMinimum__', repr=False)
+    _maximum_col: str = field(default='__tempMaximum__', repr=False)
+    _size_col: str = field(default='__tempSize__', repr=False)
+    _rank_col: str = field(default='__tempRank__', repr=False)
+    _index_col: str = field(default='__tempIndex__', repr=False)
+    _proximity_col: str = field(default='__tempProximity__', repr=False)
+    _contribution_col: str = field(default='__tempContribution__', repr=False)
+    _midpoint_col: str = field(default='__tempMidpointValue__', repr=False)
+    _determined_col: str = field(default='__tempDeterminedCount__', repr=False)
+    _totalcount_col: str = field(default='__tempTotalCount__', repr=False)
     
     def __post_init__(self):
         
@@ -601,7 +601,8 @@ class CensoredData:
                 f'{repr(round_to)}.')
         
         # Assess the data for exceedances
-        df = _determine_exceedances(self, df, threshold, threshold_is_exceedance)
+        df = _determine_exceedances(self, df, threshold,
+                                    threshold_is_exceedance)
         
         # Create stat column
         df[self.stat_col] = stat_name
