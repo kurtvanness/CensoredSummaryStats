@@ -145,9 +145,10 @@ def _mean_or_sum_interval(cdf, data, groupby_cols, stat_name, stat='mean'):
     # Change notation of 'Closed' and 'Open' boundaries to 0 and 1, 
     # respectively. The presence of any open boundaries on one side ensures
     # that the interval for the result is also open on that side
-    df[[cdf.left_boundary_col, cdf.right_boundary_col]] = (
-        df[[cdf.left_boundary_col, cdf.right_boundary_col]]
-            .replace(['Closed','Open'], [0,1]))
+    df[cdf.left_boundary_col] = (
+        df[cdf.left_boundary_col].map({'Closed':0, 'Open':1}))
+    df[cdf.right_boundary_col] = (
+        df[cdf.right_boundary_col].map({'Closed':0, 'Open':1}))
     
     # Get the left/right bounds of the result by averaging or adding all 
     # left/right bounds within the group.
@@ -169,9 +170,10 @@ def _mean_or_sum_interval(cdf, data, groupby_cols, stat_name, stat='mean'):
         )
     
     # Replace integers with text for boundaries
-    df[[cdf.left_boundary_col, cdf.right_boundary_col]] = (
-        df[[cdf.left_boundary_col, cdf.right_boundary_col]]
-            .replace([0,1], ['Closed','Open']))
+    df[cdf.left_boundary_col] = (
+        df[cdf.left_boundary_col].map({0:'Closed', 1:'Open'}))
+    df[cdf.right_boundary_col] = (
+        df[cdf.right_boundary_col].map({0:'Closed', 1:'Open'}))
     
     # Means/sums with infinite values produce nan values rather than 
     # np.inf values. Convert nan to inf only if infinite values are
@@ -262,13 +264,13 @@ def _percentile_interval(cdf,
     # and 1, respectively. Use 0 for Closed to ensure that Closed boundaries
     # are sorted smaller than Open boundaries when the left bound is tied
     df[cdf.left_boundary_col] = (
-        df[cdf.left_boundary_col].replace(['Closed','Open'], [0,1]))
+        df[cdf.left_boundary_col].map({'Closed':0, 'Open':1}))
     
     # For the right bound, change notation of Closed and Open boundaries to 1
     # and 0, respectively. Use 1 for Closed to ensure that Closed boundaries
     # are sorted larger than Open boundaries when the right bound is tied
     df[cdf.right_boundary_col] = (
-        df[cdf.right_boundary_col].replace(['Closed','Open'], [1,0]))
+        df[cdf.right_boundary_col].map({'Closed':1, 'Open':0}))
     
     # Sort the left and right bounds
     # Reduce working dataframes to relevant columns
@@ -359,9 +361,9 @@ def _percentile_interval(cdf,
     
     # Replace the numeric value for the boundary
     left[cdf.left_boundary_col] = (
-        left[cdf.left_boundary_col].replace([0,1], ['Closed','Open']))
+        left[cdf.left_boundary_col].map({0:'Closed', 1:'Open'}))
     right[cdf.right_boundary_col] = (
-        right[cdf.right_boundary_col].replace([1,0], ['Closed','Open']))
+        right[cdf.right_boundary_col].map({1:'Closed', 0:'Open'}))
     
     # Replace nan bounds with infinite bound
     left[cdf.left_bound_col] = (
