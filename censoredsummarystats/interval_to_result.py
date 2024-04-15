@@ -174,7 +174,8 @@ def _result_from_components(cdf, stat_data):
     if cdf.precision_rounding:
         df[cdf.result_col] = (
             df[cdf.censor_col] + 
-            df[cdf.numeric_col].apply(_string_precision, cdf.thousands_comma)
+            df[cdf.numeric_col].apply(lambda x: 
+                                      _string_precision(x,cdf.thousands_comma))
             )
     else:
         df[cdf.result_col] = (
