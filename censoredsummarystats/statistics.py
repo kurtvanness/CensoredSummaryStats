@@ -32,7 +32,7 @@ class CensoredData:
         A pandas dataframe containing censored data
     value_col : string
         The column name for the column with censored results
-    include_negative_potential : bool
+    include_negative_interval : bool
         This setting indicates whether negative values are expected or not.
         The default is false.
     focus_high_potential : bool
