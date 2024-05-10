@@ -21,7 +21,7 @@ Default analysis settings:
 
 Customizable output column names:
 
-- **stat_col**: (default 'Statistic') This column contains the statatistic that was analyzed (minimum, maximum, median, etc.).
+- **stat_col**: (default 'Statistic') This column contains the statistic that was analyzed (minimum, maximum, median, etc.).
 - **result_col**: (default 'Result') This column contains the result of the statistical analysis as a string value. It may contain additional information for percentile or percent exceedance results.
 - **censor_col**: (default 'CensorComponent') This column contains the censor component for statistical results.
 - **numeric_col**: (default 'NumericComponent') This column contains the numeric component for statistical results.
@@ -51,19 +51,19 @@ The class requires a dataframe that contains a column of potentially censored va
 
 Additional table columns can be provided as a list so that the statistical functions obtain results for specified groups.
 
-1.	**Maximum**: Calculate the maximum value for a set of values.
+1.	**maximum**: Calculate the maximum value for a set of values.
 
-2.	**Minimum**: Calculate the minimum value for a set of values.
+2.	**minimum**: Calculate the minimum value for a set of values.
 
-3.	**Mean/Average**: Calculate the average value for a set of values.
+3.	**mean** or **average**: Calculate the average value for a set of values.
 
-4.	**Median**: Calculate the median value for a set of values.
+4.	**median**: Calculate the median value for a set of values.
 
-5.	**Percentile**: Calculate a percentile for a set of values. The desired percentile should be provided as a number between 0 and 100. The default percentile method is Hazen, but other methods include Weibull, Tukey, Blom, and Excel as described in https://environment.govt.nz/assets/Publications/Files/hazen-percentile-calculator-2.xls
+5.	**percentile**: Calculate a percentile for a set of values. The desired percentile should be provided as a number between 0 and 100. The default percentile method is Hazen, but other methods include Weibull, Tukey, Blom, and Excel as described in https://environment.govt.nz/assets/Publications/Files/hazen-percentile-calculator-2.xls
 
-6.	**Addition**: Calculate the sum for a set of values.
+6.	**add**: Calculate the sum for a set of values.
 
-7.	**Percent Exceedances**: Calculate the percentage of values that exceed a specified threshold. The desired threshold should be provided as a number. The default is to not treat results equal to the threshold as exceedances, but this can be changed by setting threshold_is_exceedance to True.
+7.	**percent_exceedance**: Calculate the percentage of values that exceed a specified threshold. The desired threshold should be provided as a number. The default is to not treat results equal to the threshold as exceedances, but this can be changed by setting threshold_is_exceedance to True.
 
 
 ## Method settings:
